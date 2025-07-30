@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import DashboardLayout from './layout/DashboardLayout';
 import DashboardHome from './pages/dashboard';
 import EmployeesList from './pages/dashboard/employees';
@@ -13,30 +14,29 @@ import AdminsList from './pages/dashboard/admins';
 import AddAdmin from './pages/dashboard/admins/add';
 import EPFSettings from './pages/dashboard/settings/epf';
 import Reports from './pages/dashboard/reports';
+import Login from './pages/auth';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Function to get current page from URL
-  const getCurrentPageFromURL = () => {
-    const path = window.location.pathname;
+  // Get current page from location pathname
+  const getCurrentPage = () => {
+    const path = location.pathname;
     if (path === '/' || path === '/dashboard') {
       return 'dashboard';
     }
     return path.substring(1);
   };
 
-  // Function to update URL without page reload
-  const updateURL = (page) => {
-    const url = page === 'dashboard' ? '/dashboard' : `/${page}`;
-    window.history.pushState({ page }, '', url);
-  };
+  const currentPage = getCurrentPage();
 
-  // Custom setCurrentPage that also updates URL
+  // Custom navigation function for breadcrumb and sidebar
   const handlePageChange = (page) => {
-    setCurrentPage(page);
-    updateURL(page);
+    const url = page === 'dashboard' ? '/dashboard' : `/${page}`;
+    navigate(url);
+    setSidebarOpen(false); // Close sidebar on mobile after navigation
   };
 
   // Make handlePageChange available globally for breadcrumb navigation
@@ -45,63 +45,21 @@ function App() {
     return () => {
       delete window.setCurrentPage;
     };
-  }, []);
+  }, [navigate]);
 
-  // Handle browser back/forward buttons
-  useEffect(() => {
-    const handlePopState = (event) => {
-      const page = event.state?.page || getCurrentPageFromURL();
-      setCurrentPage(page);
-    };
-
-    const initialPage = getCurrentPageFromURL();
-    setCurrentPage(initialPage);
-
-    window.addEventListener('popstate', handlePopState);
-    window.history.replaceState({ page: initialPage }, '', window.location.pathname);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, []);
-
-  const renderPage = () => {
-    // Pass currentPage as prop to each component
-    const pageProps = { currentPath: currentPage };
-
-    switch (currentPage) {
-      case 'dashboard':
-        return <DashboardHome {...pageProps} />;
-      case 'employees':
-        return <EmployeesList {...pageProps} />;
-      case 'employees/add':
-        return <AddEmployee {...pageProps} />;
-      case 'employees/edit':
-      case 'employees/id':
-        return <ViewEditEmployee {...pageProps} />;
-      case 'departments':
-        return <DepartmentsList {...pageProps} />;
-      case 'departments/add':
-        return <AddDepartment {...pageProps} />;
-      case 'departments/edit':
-      case 'departments/id':
-        return <EditDepartment {...pageProps} />;
-      case 'epf':
-        return <EPFList {...pageProps} />;
-      case 'epf/add':
-        return <AddEPF {...pageProps} />;
-      case 'admins':
-        return <AdminsList {...pageProps} />;
-      case 'admins/add':
-        return <AddAdmin {...pageProps} />;
-      case 'settings/epf':
-        return <EPFSettings {...pageProps} />;
-      case 'reports':
-        return <Reports {...pageProps} />;
-      default:
-        return <DashboardHome {...pageProps} />;
-    }
-  };
+  // Dashboard Layout Wrapper Component
+  const DashboardWrapper = ({ children }) => (
+    <DashboardLayout
+      currentPage={currentPage}
+      setCurrentPage={handlePageChange}
+      sidebarOpen={sidebarOpen}
+      setSidebarOpen={setSidebarOpen}
+    >
+      <div className="animate-fadeIn">
+        {children}
+      </div>
+    </DashboardLayout>
+  );
 
   return (
     <div className="App">
@@ -114,14 +72,121 @@ function App() {
           animation: fadeIn 0.3s ease-out;
         }
       `}</style>
-      <DashboardLayout
-        currentPage={currentPage}
-        setCurrentPage={handlePageChange}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-      >
-        {renderPage()}
-      </DashboardLayout>
+
+      <Routes>
+        {/* Authentication Routes */}
+        <Route path="/login" element={<Login />} />
+
+        {/* Dashboard Routes - All wrapped in DashboardLayout */}
+        <Route path="/" element={
+          <DashboardWrapper>
+            <DashboardHome currentPath="dashboard" />
+          </DashboardWrapper>
+        } />
+
+        <Route path="/dashboard" element={
+          <DashboardWrapper>
+            <DashboardHome currentPath="dashboard" />
+          </DashboardWrapper>
+        } />
+
+        {/* Employee Routes */}
+        <Route path="/employees" element={
+          <DashboardWrapper>
+            <EmployeesList currentPath="employees" />
+          </DashboardWrapper>
+        } />
+
+        <Route path="/employees/add" element={
+          <DashboardWrapper>
+            <AddEmployee currentPath="employees/add" />
+          </DashboardWrapper>
+        } />
+
+        <Route path="/employees/edit/:id" element={
+          <DashboardWrapper>
+            <ViewEditEmployee currentPath="employees/edit" />
+          </DashboardWrapper>
+        } />
+
+        <Route path="/employees/:id" element={
+          <DashboardWrapper>
+            <ViewEditEmployee currentPath="employees/id" />
+          </DashboardWrapper>
+        } />
+
+        {/* Department Routes */}
+        <Route path="/departments" element={
+          <DashboardWrapper>
+            <DepartmentsList currentPath="departments" />
+          </DashboardWrapper>
+        } />
+
+        <Route path="/departments/add" element={
+          <DashboardWrapper>
+            <AddDepartment currentPath="departments/add" />
+          </DashboardWrapper>
+        } />
+
+        <Route path="/departments/edit/:id" element={
+          <DashboardWrapper>
+            <EditDepartment currentPath="departments/edit" />
+          </DashboardWrapper>
+        } />
+
+        <Route path="/departments/:id" element={
+          <DashboardWrapper>
+            <EditDepartment currentPath="departments/id" />
+          </DashboardWrapper>
+        } />
+
+        {/* EPF Routes */}
+        <Route path="/epf" element={
+          <DashboardWrapper>
+            <EPFList currentPath="epf" />
+          </DashboardWrapper>
+        } />
+
+        <Route path="/epf/add" element={
+          <DashboardWrapper>
+            <AddEPF currentPath="epf/add" />
+          </DashboardWrapper>
+        } />
+
+        {/* Admin Routes */}
+        <Route path="/admins" element={
+          <DashboardWrapper>
+            <AdminsList currentPath="admins" />
+          </DashboardWrapper>
+        } />
+
+        <Route path="/admins/add" element={
+          <DashboardWrapper>
+            <AddAdmin currentPath="admins/add" />
+          </DashboardWrapper>
+        } />
+
+        {/* Settings Routes */}
+        <Route path="/settings/epf" element={
+          <DashboardWrapper>
+            <EPFSettings currentPath="settings/epf" />
+          </DashboardWrapper>
+        } />
+
+        {/* Reports Route */}
+        <Route path="/reports" element={
+          <DashboardWrapper>
+            <Reports currentPath="reports" />
+          </DashboardWrapper>
+        } />
+
+        {/* Catch-all route - redirect to dashboard */}
+        <Route path="*" element={
+          <DashboardWrapper>
+            <DashboardHome currentPath="dashboard" />
+          </DashboardWrapper>
+        } />
+      </Routes>
     </div>
   );
 }
