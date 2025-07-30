@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, User, Shield } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Shield, CheckCircle, XCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { loginApi } from '../apis/login.api';
 
 // Login UI Component
-const LoginUI = ({ forgotClicked }) => {
+const LoginUI = ({ forgotClicked = () => { } }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [formData, setFormData] = useState({
         email: '',
@@ -10,6 +12,9 @@ const LoginUI = ({ forgotClicked }) => {
         rememberMe: false
     });
     const [isLoading, setIsLoading] = useState(false);
+    const [message, setMessage] = useState(null);
+    const [messageType, setMessageType] = useState('');
+    const navigate = useNavigate();
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -17,21 +22,42 @@ const LoginUI = ({ forgotClicked }) => {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
+
+        // Clear message when user starts typing
+        if (message) {
+            setMessage(null);
+            setMessageType('');
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
+        setMessage(null);
+        setMessageType('');
 
-        setTimeout(() => {
+        try {
+            const response = await loginApi(formData);
+            if (response.success) {
+                setMessage(response.message || 'Login successful!');
+                setMessageType('success');
+                navigate('/dashboard');
+            }
+        } catch (error) {
+            setMessage(error.response?.data?.message || 'Login failed. Please try again.');
+            setMessageType('error');
+        } finally {
             setIsLoading(false);
-            console.log('Login attempt:', formData);
-        }, 2000);
+        }
     };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+            <div className="absolute inset-0" style={{
+                backgroundImage: 'radial-gradient(circle, #3b82f6 1px, transparent 1px)',
+                backgroundSize: '20px 20px',
+                opacity: 0.05
+            }}></div>
 
             <div className="relative w-full max-w-md">
                 <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
@@ -49,8 +75,32 @@ const LoginUI = ({ forgotClicked }) => {
                         </div>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="px-8 py-8">
+                    <div className="px-8 py-8">
                         <div className="space-y-6">
+                            {/* Message Display */}
+                            {message && (
+                                <div className={`
+                                    flex items-center gap-3 p-4 rounded-lg border transition-all duration-300 transform
+                                    ${messageType === 'success'
+                                        ? 'bg-green-50 border-green-200 text-green-800'
+                                        : 'bg-red-50 border-red-200 text-red-800'
+                                    }
+                                `} style={{
+                                        animation: 'messageSlideIn 0.3s ease-out'
+                                    }}>
+                                    <div className="flex-shrink-0">
+                                        {messageType === 'success' ? (
+                                            <CheckCircle className="w-5 h-5 text-green-600" />
+                                        ) : (
+                                            <XCircle className="w-5 h-5 text-red-600" />
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium">{message}</p>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="space-y-2">
                                 <label htmlFor="email" className="text-sm font-medium text-gray-700 block">
                                     Email Address / EPF No
@@ -126,6 +176,7 @@ const LoginUI = ({ forgotClicked }) => {
                             <button
                                 type="submit"
                                 disabled={isLoading}
+                                onClick={handleSubmit}
                                 className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
                             >
                                 {isLoading ? (
@@ -141,7 +192,7 @@ const LoginUI = ({ forgotClicked }) => {
                                 )}
                             </button>
                         </div>
-                    </form>
+                    </div>
                 </div>
 
                 <div className="mt-8 text-center">
@@ -151,10 +202,16 @@ const LoginUI = ({ forgotClicked }) => {
                 </div>
             </div>
 
-            <style jsx>{`
-                .bg-grid-pattern {
-                    background-image: radial-gradient(circle, #3b82f6 1px, transparent 1px);
-                    background-size: 20px 20px;
+            <style>{`
+                @keyframes messageSlideIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-10px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
                 }
             `}</style>
         </div>

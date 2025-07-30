@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Menu, Bell, Search, User, ChevronDown, UserCircle, LogOut } from 'lucide-react';
+import { logoutApi } from '../apis/logout.api';
 
 const Topbar = ({ setSidebarOpen, currentPage }) => {
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
@@ -52,10 +53,10 @@ const Topbar = ({ setSidebarOpen, currentPage }) => {
         // Add your profile navigation logic here
     };
 
-    const handleLogoutClick = () => {
-        console.log('Logout clicked');
+    const handleLogoutClick = async () => {
         setIsProfileDropdownOpen(false);
-        // Add your logout logic here
+        // Call the logout API
+        await logoutApi();
     };
 
     return (

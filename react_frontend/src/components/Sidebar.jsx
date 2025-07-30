@@ -84,7 +84,7 @@ const Sidebar = ({ currentPage, setCurrentPage, sidebarOpen, setSidebarOpen }) =
     return (
         <>
             {/* Custom Scrollbar Styles */}
-            <style jsx>{`
+            <style jsx={'true'}>{`
                 .custom-scrollbar {
                     scrollbar-width: thin;
                     scrollbar-color: #CBD5E1 #F8FAFC;
@@ -135,14 +135,23 @@ const Sidebar = ({ currentPage, setCurrentPage, sidebarOpen, setSidebarOpen }) =
                 }
             `}</style>
 
-            <div 
-                className={`sidebar-container fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 flex flex-col ${
-                    sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                }`}
+            <div
+                className={`sidebar-container fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                    }`}
             >
                 {/* Fixed Header */}
                 <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 bg-white flex-shrink-0">
-                    <h1 className="text-xl font-bold text-gray-900">UMS Dashboard</h1>
+                    <div className="flex items-center space-x-3">
+                        <div className="w-11 h-11 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg ring-1 ring-blue-100">
+                            <span className="text-white font-bold text-xl tracking-wide">U</span>
+                        </div>
+                        <div className='flex items-center justify-center flex-col'>
+                            <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent leading-none">
+                                UMS <span className="text-slate-700">Dashboard</span>
+                            </h1>
+                            <p className="text-[10px] text-slate-500 leading-none mt-1 font-medium">User Management System</p>
+                        </div>
+                    </div>
                     <button
                         onClick={() => setSidebarOpen(false)}
                         className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-600 transition-colors duration-200"
@@ -165,54 +174,48 @@ const Sidebar = ({ currentPage, setCurrentPage, sidebarOpen, setSidebarOpen }) =
                                                 handleItemClick(item);
                                             }
                                         }}
-                                        className={`w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-                                            currentPage === item.path || currentPage.startsWith(item.path + '/')
-                                                ? 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 shadow-sm border border-blue-200'
-                                                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                                        }`}
+                                        className={`w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${currentPage === item.path || currentPage.startsWith(item.path + '/')
+                                            ? 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 shadow-sm border border-blue-200'
+                                            : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                                            }`}
                                     >
                                         <div className="flex items-center">
-                                            <item.icon 
-                                                className={`w-5 h-5 mr-3 transition-colors duration-200 ${
-                                                    currentPage === item.path || currentPage.startsWith(item.path + '/')
-                                                        ? 'text-blue-600'
-                                                        : 'text-gray-500'
-                                                }`} 
+                                            <item.icon
+                                                className={`w-5 h-5 mr-3 transition-colors duration-200 ${currentPage === item.path || currentPage.startsWith(item.path + '/')
+                                                    ? 'text-blue-600'
+                                                    : 'text-gray-500'
+                                                    }`}
                                             />
                                             {item.label}
                                         </div>
                                         {item.subItems && (
                                             <ChevronDown
-                                                className={`w-4 h-4 transition-all duration-200 ${
-                                                    expandedItems[item.id] ? 'rotate-180' : ''
-                                                } ${
-                                                    currentPage === item.path || currentPage.startsWith(item.path + '/')
+                                                className={`w-4 h-4 transition-all duration-200 ${expandedItems[item.id] ? 'rotate-180' : ''
+                                                    } ${currentPage === item.path || currentPage.startsWith(item.path + '/')
                                                         ? 'text-blue-600'
                                                         : 'text-gray-400'
-                                                }`}
+                                                    }`}
                                             />
                                         )}
                                     </button>
 
                                     {/* Submenu with smooth animation */}
                                     {item.subItems && (
-                                        <div 
-                                            className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                                                expandedItems[item.id] 
-                                                    ? 'max-h-96 opacity-100 mt-1' 
-                                                    : 'max-h-0 opacity-0'
-                                            }`}
+                                        <div
+                                            className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedItems[item.id]
+                                                ? 'max-h-96 opacity-100 mt-1'
+                                                : 'max-h-0 opacity-0'
+                                                }`}
                                         >
                                             <div className="ml-8 space-y-1">
                                                 {item.subItems.map((subItem) => (
                                                     <button
                                                         key={subItem.id}
                                                         onClick={() => handleItemClick(item, subItem)}
-                                                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 relative ${
-                                                            currentPage === subItem.path
-                                                                ? 'bg-blue-50 text-blue-700 font-medium border-l-2 border-blue-500'
-                                                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent'
-                                                        }`}
+                                                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 relative ${currentPage === subItem.path
+                                                            ? 'bg-blue-50 text-blue-700 font-medium border-l-2 border-blue-500'
+                                                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent'
+                                                            }`}
                                                     >
                                                         <span className="relative z-10">{subItem.label}</span>
                                                         {currentPage === subItem.path && (
