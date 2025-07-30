@@ -1,5 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronRight, Home, X, MoreHorizontal } from 'lucide-react';
+import {
+    ChevronRight,
+    Home,
+    X,
+    MoreHorizontal,
+    Users,
+    UserPlus,
+    Edit,
+    User,
+    Building2,
+    Plus,
+    Edit3,
+    FileText,
+    Calculator,
+    Shield,
+    Settings,
+    BarChart3,
+    Briefcase
+} from 'lucide-react';
 
 const TabHeader = ({ title, subtitle, currentPath }) => {
     const [breadcrumbs, setBreadcrumbs] = useState([]);
@@ -24,10 +42,32 @@ const TabHeader = ({ title, subtitle, currentPath }) => {
         'reports': 'Reports'
     };
 
+    // Get the current page icon based on path
+    const getCurrentPageIcon = () => {
+        const Icon = getPageIcon(currentPath);
+        return <Icon className="w-7 h-7 text-white drop-shadow-sm" />;
+    };
     // Icons for different page types
     const getPageIcon = (path) => {
-        if (path === 'dashboard') return Home;
-        return null;
+        const iconMap = {
+            'dashboard': Home,
+            'employees': Users,
+            'employees/add': UserPlus,
+            'employees/edit': Edit,
+            'employees/id': User,
+            'departments': Building2,
+            'departments/add': Plus,
+            'departments/edit': Edit3,
+            'departments/id': Building2,
+            'epf': Calculator,
+            'epf/add': Plus,
+            'admins': Shield,
+            'admins/add': UserPlus,
+            'settings/epf': Settings,
+            'reports': BarChart3
+        };
+
+        return iconMap[path] || Briefcase;
     };
 
     // Function to get page label
@@ -115,10 +155,10 @@ const TabHeader = ({ title, subtitle, currentPath }) => {
                                                 <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
                                                 <button
                                                     onClick={() => setShowAllBreadcrumbs(!showAllBreadcrumbs)}
-                                                    className="p-1 rounded-md hover:bg-gray-100 transition-colors duration-200"
+                                                    className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 border border-gray-200"
                                                     title="Show all breadcrumbs"
                                                 >
-                                                    <MoreHorizontal className="w-4 h-4 text-gray-400" />
+                                                    <MoreHorizontal className="w-4 h-4 text-gray-500" />
                                                 </button>
                                             </div>
                                         );
@@ -128,11 +168,19 @@ const TabHeader = ({ title, subtitle, currentPath }) => {
                                         <div key={`${crumb.path}-${crumb.timestamp}`} className="flex items-center space-x-1">
                                             {index > 0 && <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />}
 
-                                            <div className={`group flex items-center space-x-1 px-2 py-1 rounded-md transition-all duration-200 ${isLast
-                                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                                : 'hover:bg-gray-100 text-gray-600'
+                                            <div className={`group flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 ${isLast
+                                                ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200 shadow-sm'
+                                                : 'hover:bg-gray-50 text-gray-600 border border-transparent hover:border-gray-200 hover:shadow-sm'
                                                 }`}>
-                                                {Icon && <Icon className="w-4 h-4 flex-shrink-0" />}
+                                                <div className={`p-1 rounded-md ${isLast
+                                                    ? 'bg-blue-100'
+                                                    : 'bg-gray-100 group-hover:bg-gray-200'
+                                                    }`}>
+                                                    <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${isLast
+                                                        ? 'text-blue-600'
+                                                        : 'text-gray-500 group-hover:text-gray-700'
+                                                        }`} />
+                                                </div>
 
                                                 <button
                                                     onClick={() => !isLast && handleBreadcrumbClick(crumb.path, breadcrumbs.findIndex(b => b.path === crumb.path))}
@@ -149,10 +197,10 @@ const TabHeader = ({ title, subtitle, currentPath }) => {
                                                 {!isLast && breadcrumbs.length > 2 && (
                                                     <button
                                                         onClick={(e) => removeBreadcrumb(breadcrumbs.findIndex(b => b.path === crumb.path), e)}
-                                                        className="opacity-0 group-hover:opacity-100 p-0.5 rounded-sm hover:bg-gray-200 transition-all duration-200"
+                                                        className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-red-100 transition-all duration-200 ml-1"
                                                         title="Remove from breadcrumb"
                                                     >
-                                                        <X className="w-3 h-3 text-gray-400 hover:text-gray-600" />
+                                                        <X className="w-3 h-3 text-red-400 hover:text-red-600" />
                                                     </button>
                                                 )}
                                             </div>
@@ -167,7 +215,7 @@ const TabHeader = ({ title, subtitle, currentPath }) => {
                             {breadcrumbs.length > 4 && (
                                 <button
                                     onClick={() => setShowAllBreadcrumbs(!showAllBreadcrumbs)}
-                                    className="text-xs px-2 py-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-all duration-200"
+                                    className="text-xs px-3 py-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all duration-200 border border-blue-200 font-medium"
                                 >
                                     {showAllBreadcrumbs ? 'Collapse' : 'Show All'}
                                 </button>
@@ -176,7 +224,7 @@ const TabHeader = ({ title, subtitle, currentPath }) => {
                             {breadcrumbs.length > 1 && (
                                 <button
                                     onClick={clearBreadcrumbs}
-                                    className="text-xs px-2 py-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-all duration-200"
+                                    className="text-xs px-3 py-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-200 border border-red-200 font-medium"
                                     title="Clear all breadcrumbs"
                                 >
                                     Clear All
@@ -187,22 +235,24 @@ const TabHeader = ({ title, subtitle, currentPath }) => {
 
                     {/* Quick access tabs for recent pages */}
                     {breadcrumbs.length > 1 && (
-                        <div className="flex items-center space-x-2 overflow-x-auto pb-2">
-                            <span className="text-xs text-gray-500 whitespace-nowrap">Quick Access:</span>
-                            <div className="flex space-x-1">
+                        <div className="flex items-center space-x-3 overflow-x-auto pb-2">
+                            <span className="text-xs text-gray-500 whitespace-nowrap font-medium">Quick Access:</span>
+                            <div className="flex space-x-2">
                                 {breadcrumbs.slice(-5).map((crumb, index) => {
                                     const isActive = crumb.path === currentPath;
+                                    const Icon = getPageIcon(crumb.path);
                                     return (
                                         <button
                                             key={`quick-${crumb.path}-${crumb.timestamp}`}
                                             onClick={() => !isActive && handleBreadcrumbClick(crumb.path, breadcrumbs.findIndex(b => b.path === crumb.path))}
-                                            className={`px-3 py-1 text-xs rounded-full whitespace-nowrap transition-all duration-200 ${isActive
-                                                ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
+                                            className={`flex items-center space-x-1.5 px-3 py-1.5 text-xs rounded-full whitespace-nowrap transition-all duration-200 ${isActive
+                                                ? 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 border border-blue-300 shadow-sm'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 border border-gray-200 hover:shadow-sm'
                                                 }`}
                                             disabled={isActive}
                                         >
-                                            {crumb.label}
+                                            <Icon className={`w-3 h-3 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
+                                            <span className="font-medium">{crumb.label}</span>
                                         </button>
                                     );
                                 })}
@@ -213,14 +263,19 @@ const TabHeader = ({ title, subtitle, currentPath }) => {
             )}
 
             {/* Page Title and Subtitle */}
-            <div className="border-l-4 border-blue-500 pl-4">
-                <h1 className="text-3xl font-bold text-gray-900 mb-1">{title}</h1>
-                {subtitle && (
-                    <p className="text-gray-600 text-sm leading-relaxed">{subtitle}</p>
-                )}
+            <div className="flex items-start space-x-4 border-l-4 border-l-blue-600 pl-6 py-2">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform duration-200">
+                    {getCurrentPageIcon()}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <h1 className="text-3xl font-bold text-gray-900 mb-1 leading-tight">{title}</h1>
+                    {subtitle && (
+                        <p className="text-gray-600 text-sm leading-relaxed max-w-2xl">{subtitle}</p>
+                    )}
+                </div>
             </div>
         </div>
     );
 };
 
-export default TabHeader;   
+export default TabHeader;
