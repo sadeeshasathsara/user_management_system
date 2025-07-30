@@ -6,6 +6,7 @@ export const logoutApi = async () => {
 
         if (response.data.success) {
             window.location.href = '/login'
+            sessionStorage.removeItem('breadcrumbHistory');
         }
     } catch (error) {
         console.error('Error during logout:', error);

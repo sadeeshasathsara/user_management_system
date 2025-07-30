@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Home,
     Users,
@@ -68,6 +68,21 @@ const Sidebar = ({ currentPage, setCurrentPage, sidebarOpen, setSidebarOpen }) =
 
     const [expandedItems, setExpandedItems] = useState({});
 
+    // Auto-expand parent menu if current page is a subtab
+    useEffect(() => {
+        menuItems.forEach(item => {
+            if (item.subItems) {
+                const hasActiveSubItem = item.subItems.some(subItem => subItem.path === currentPage);
+                if (hasActiveSubItem) {
+                    setExpandedItems(prev => ({
+                        ...prev,
+                        [item.id]: true
+                    }));
+                }
+            }
+        });
+    }, [currentPage]);
+
     const toggleExpanded = (itemId) => {
         setExpandedItems(prev => ({
             ...prev,
@@ -78,7 +93,12 @@ const Sidebar = ({ currentPage, setCurrentPage, sidebarOpen, setSidebarOpen }) =
     const handleItemClick = (item, subItem = null) => {
         const targetPath = subItem ? subItem.path : item.path;
         setCurrentPage(targetPath);
-        setSidebarOpen(false);
+
+        // Only close sidebar on mobile devices (screen width < 1024px)
+        // You can also check window.innerWidth < 1024 if you prefer
+        if (window.innerWidth < 1024) {
+            setSidebarOpen(false);
+        }
     };
 
     return (
@@ -242,4 +262,4 @@ const Sidebar = ({ currentPage, setCurrentPage, sidebarOpen, setSidebarOpen }) =
     );
 };
 
-export default Sidebar; 
+export default Sidebar;

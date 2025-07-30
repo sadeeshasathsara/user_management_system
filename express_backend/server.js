@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
+import cookieParser from 'cookie-parser';
 
 import apiRoutes from './src/routes/api.route.js'
 
@@ -17,6 +18,7 @@ app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:3000',
     credentials: true
 }));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -15,6 +15,7 @@ import AddAdmin from './pages/dashboard/admins/add';
 import EPFSettings from './pages/dashboard/settings/epf';
 import Reports from './pages/dashboard/reports';
 import Login from './pages/auth';
+import ProtectRoutes from './components/ProtectRoutes';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -79,78 +80,119 @@ function App() {
 
         {/* Dashboard Routes - All wrapped in DashboardLayout */}
         <Route path="/" element={
-          <DashboardWrapper>
-            <DashboardHome currentPath="dashboard" />
-          </DashboardWrapper>
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <DashboardHome currentPath="dashboard" />
+            </DashboardWrapper>
+          </ProtectRoutes>
         } />
 
         <Route path="/dashboard" element={
-          <DashboardWrapper>
-            <DashboardHome currentPath="dashboard" />
-          </DashboardWrapper>
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <DashboardHome currentPath="dashboard" />
+            </DashboardWrapper>
+          </ProtectRoutes>
         } />
 
         {/* Employee Routes */}
         <Route path="/employees" element={
-          <DashboardWrapper>
-            <EmployeesList currentPath="employees" />
-          </DashboardWrapper>
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <EmployeesList currentPath="employees" />
+            </DashboardWrapper>
+          </ProtectRoutes>
         } />
 
         <Route path="/employees/add" element={
-          <DashboardWrapper>
-            <AddEmployee currentPath="employees/add" />
-          </DashboardWrapper>
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <AddEmployee currentPath="employees/add" />
+            </DashboardWrapper>
+          </ProtectRoutes>
         } />
 
         <Route path="/employees/edit/:id" element={
-          <DashboardWrapper>
-            <ViewEditEmployee currentPath="employees/edit" />
-          </DashboardWrapper>
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <ViewEditEmployee currentPath="employees/edit" />
+            </DashboardWrapper>
+          </ProtectRoutes>
         } />
 
         <Route path="/employees/:id" element={
-          <DashboardWrapper>
-            <ViewEditEmployee currentPath="employees/id" />
-          </DashboardWrapper>
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <ViewEditEmployee currentPath="employees/id" />
+            </DashboardWrapper>
+          </ProtectRoutes>
         } />
 
         {/* Department Routes */}
         <Route path="/departments" element={
-          <DashboardWrapper>
-            <DepartmentsList currentPath="departments" />
-          </DashboardWrapper>
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <DepartmentsList currentPath="departments" />
+            </DashboardWrapper>
+          </ProtectRoutes>
         } />
 
         <Route path="/departments/add" element={
-          <DashboardWrapper>
-            <AddDepartment currentPath="departments/add" />
-          </DashboardWrapper>
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <AddDepartment currentPath="departments/add" />
+            </DashboardWrapper>
+          </ProtectRoutes>
         } />
 
         <Route path="/departments/edit/:id" element={
-          <DashboardWrapper>
-            <EditDepartment currentPath="departments/edit" />
-          </DashboardWrapper>
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <EditDepartment currentPath="departments/edit" />
+            </DashboardWrapper>
+          </ProtectRoutes>
         } />
 
         <Route path="/departments/:id" element={
-          <DashboardWrapper>
-            <EditDepartment currentPath="departments/id" />
-          </DashboardWrapper>
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <EditDepartment currentPath="departments/id" />
+            </DashboardWrapper>
+          </ProtectRoutes>
         } />
 
         {/* EPF Routes */}
         <Route path="/epf" element={
-          <DashboardWrapper>
-            <EPFList currentPath="epf" />
-          </DashboardWrapper>
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <EPFList currentPath="epf" />
+            </DashboardWrapper>
+          </ProtectRoutes>
+        } />
+
+        {/* EPF Routes */}
+        <Route path="/epf" element={
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <EPFList currentPath="epf" />
+            </DashboardWrapper>
+          </ProtectRoutes>
         } />
 
         <Route path="/epf/add" element={
-          <DashboardWrapper>
-            <AddEPF currentPath="epf/add" />
-          </DashboardWrapper>
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <AddEPF currentPath="epf/add" />
+            </DashboardWrapper>
+          </ProtectRoutes>
+        } />
+
+        <Route path="/epf/add" element={
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <AddEPF currentPath="epf/add" />
+            </DashboardWrapper>
+          </ProtectRoutes>
         } />
 
         {/* Admin Routes */}
@@ -160,31 +202,48 @@ function App() {
           </DashboardWrapper>
         } />
 
+        {/* Admin Routes */}
+        <Route path="/admins" element={
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <AdminsList currentPath="admins" />
+            </DashboardWrapper>
+          </ProtectRoutes>
+        } />
+
         <Route path="/admins/add" element={
-          <DashboardWrapper>
-            <AddAdmin currentPath="admins/add" />
-          </DashboardWrapper>
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <AddAdmin currentPath="admins/add" />
+            </DashboardWrapper>
+          </ProtectRoutes>
         } />
 
         {/* Settings Routes */}
         <Route path="/settings/epf" element={
-          <DashboardWrapper>
-            <EPFSettings currentPath="settings/epf" />
-          </DashboardWrapper>
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <EPFSettings currentPath="settings/epf" />
+            </DashboardWrapper>
+          </ProtectRoutes>
         } />
 
         {/* Reports Route */}
         <Route path="/reports" element={
-          <DashboardWrapper>
-            <Reports currentPath="reports" />
-          </DashboardWrapper>
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <Reports currentPath="reports" />
+            </DashboardWrapper>
+          </ProtectRoutes>
         } />
 
         {/* Catch-all route - redirect to dashboard */}
         <Route path="*" element={
-          <DashboardWrapper>
-            <DashboardHome currentPath="dashboard" />
-          </DashboardWrapper>
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <DashboardHome currentPath="dashboard" />
+            </DashboardWrapper>
+          </ProtectRoutes>
         } />
       </Routes>
     </div>
