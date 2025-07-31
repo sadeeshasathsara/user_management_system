@@ -610,7 +610,7 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                                     </div>
                                     <div>
                                         <span className="text-sm font-medium text-gray-500">Basic Salary</span>
-                                        <p className="text-gray-900 text-lg font-semibold text-green-600">
+                                        <p className="text-lg font-semibold text-green-600">
                                             Rs. {employee.basicSalary?.toLocaleString() || 'N/A'}
                                         </p>
                                     </div>
