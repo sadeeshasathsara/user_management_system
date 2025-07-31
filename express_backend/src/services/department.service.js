@@ -1,10 +1,11 @@
 import Department from "../models/department.model.js";
+import mongoose from "mongoose";
 
-// Error classes defined directly in the service file
 class NotFoundError extends Error {
   constructor(message) {
     super(message);
     this.name = 'NotFoundError';
+    this.statusCode = 404;
   }
 }
 
@@ -12,49 +13,79 @@ class ConflictError extends Error {
   constructor(message) {
     super(message);
     this.name = 'ConflictError';
+    this.statusCode = 409;
+  }
+}
+
+class ValidationError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'ValidationError';
+    this.statusCode = 400;
   }
 }
 
 class DepartmentService {
   /**
-   * Create a new department
-   * @param {Object} departmentData - Department data
-   * @returns {Promise<Object>} Created department with success message
+   * Create a new department with case-insensitive name check
    */
   async createDepartment(departmentData) {
-    // Check if department already exists
-    const existingDepartment = await Department.findOne({ name: departmentData.name });
+    // Validate input
+    if (!departmentData.name || !departmentData.description) {
+      throw new ValidationError('Name and description are required');
+    }
+
+    // Case-insensitive duplicate check
+    const existingDepartment = await Department.findOne({
+      name: { $regex: new RegExp(`^${departmentData.name}$`, 'i') }
+    });
+
     if (existingDepartment) {
       throw new ConflictError('Department with this name already exists');
     }
 
-    const department = new Department(departmentData);
-    await department.save();
+    try {
+      const department = new Department(departmentData);
+      await department.save();
+      return this.formatDepartmentResponse(department, 'created');
+    } catch (error) {
+      // Catch MongoDB duplicate key error (fallback)
+      if (error.code === 11000) {
+        throw new ConflictError('Department with this name already exists');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get all departments with optional pagination
+   */
+  async getAllDepartments({ page = 1, limit = 10 } = {}) {
+    const skip = (page - 1) * limit;
+    const [departments, count] = await Promise.all([
+      Department.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Department.countDocuments()
+    ]);
 
     return {
-      message: "Department created successfully",
-      _id: department._id,
-      name: department.name,
-      description: department.description,
-      createdAt: department.createdAt.toISOString(),
-      updatedAt: department.updatedAt.toISOString()
+      data: departments,
+      pagination: {
+        total: count,
+        page,
+        limit,
+        totalPages: Math.ceil(count / limit)
+      }
     };
   }
 
   /**
-   * Get all departments
-   * @returns {Promise<Array>} List of departments
-   */
-  async getAllDepartments() {
-    return await Department.find().sort({ createdAt: -1 });
-  }
-
-  /**
    * Get department by ID
-   * @param {string} id - Department ID
-   * @returns {Promise<Object>} Department data
    */
   async getDepartmentById(id) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new ValidationError('Invalid department ID');
+    }
+
     const department = await Department.findById(id);
     if (!department) {
       throw new NotFoundError('Department not found');
@@ -63,53 +94,66 @@ class DepartmentService {
   }
 
   /**
-   * Update department
-   * @param {string} id - Department ID
-   * @param {Object} updateData - Data to update
-   * @returns {Promise<Object>} Updated department with success message
+   * Update department with comprehensive checks
    */
   async updateDepartment(id, updateData) {
-    // Check if name is being updated and conflicts with existing
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new ValidationError('Invalid department ID');
+    }
+
     if (updateData.name) {
-      const existingDept = await Department.findOne({ 
-        name: updateData.name, 
-        _id: { $ne: id } 
+      const existingDept = await Department.findOne({
+        name: { $regex: new RegExp(`^${updateData.name}$`, 'i') },
+        _id: { $ne: id }
       });
+
       if (existingDept) {
         throw new ConflictError('Another department with this name already exists');
       }
     }
 
-    const department = await Department.findByIdAndUpdate(id, updateData, { 
-      new: true,
-      runValidators: true 
-    });
+    const department = await Department.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    );
 
     if (!department) {
       throw new NotFoundError('Department not found');
     }
 
-    return {
-      message: "Department updated successfully",
-      _id: department._id,
-      name: department.name,
-      description: department.description,
-      createdAt: department.createdAt.toISOString(),
-      updatedAt: department.updatedAt.toISOString()
-    };
+    return this.formatDepartmentResponse(department, 'updated');
   }
 
   /**
    * Delete department
-   * @param {string} id - Department ID
-   * @returns {Promise<Object>} Success message
    */
   async deleteDepartment(id) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new ValidationError('Invalid department ID');
+    }
+
     const department = await Department.findByIdAndDelete(id);
     if (!department) {
       throw new NotFoundError('Department not found');
     }
     return { message: "Department deleted successfully" };
+  }
+
+  /**
+   * Standardize response format
+   */
+  formatDepartmentResponse(department, action) {
+    return {
+      message: `Department ${action} successfully`,
+      data: {
+        _id: department._id,
+        name: department.name,
+        description: department.description,
+        createdAt: department.createdAt.toISOString(),
+        updatedAt: department.updatedAt.toISOString()
+      }
+    };
   }
 }
 

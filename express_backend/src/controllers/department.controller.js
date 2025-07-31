@@ -10,24 +10,25 @@ export const createDepartment = async (req, res, next) => {
     const result = await departmentService.createDepartment(req.body);
     res.status(201).json(result);
   } catch (error) {
-    if (error.name === 'ConflictError') {
-      return res.status(400).json({ error: error.message });
-    }
-    res.status(500).json({ error: 'Server error' });
+    handleErrorResponse(res, error);
   }
 };
 
 /**
- * @desc    Get all departments
+ * @desc    Get all departments with pagination
  * @route   GET /departments
  * @access  Public
  */
 export const getAllDepartments = async (req, res, next) => {
   try {
-    const departments = await departmentService.getAllDepartments();
-    res.status(200).json(departments);
+    const { page = 1, limit = 10 } = req.query;
+    const result = await departmentService.getAllDepartments({ 
+      page: parseInt(page), 
+      limit: parseInt(limit) 
+    });
+    res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    handleErrorResponse(res, error);
   }
 };
 
@@ -39,12 +40,9 @@ export const getAllDepartments = async (req, res, next) => {
 export const getDepartmentById = async (req, res, next) => {
   try {
     const department = await departmentService.getDepartmentById(req.params.id);
-    res.status(200).json(department);
+    res.status(200).json({ data: department });
   } catch (error) {
-    if (error.name === 'NotFoundError') {
-      return res.status(404).json({ error: error.message });
-    }
-    res.status(500).json({ error: 'Server error' });
+    handleErrorResponse(res, error);
   }
 };
 
@@ -58,13 +56,7 @@ export const updateDepartment = async (req, res, next) => {
     const result = await departmentService.updateDepartment(req.params.id, req.body);
     res.status(200).json(result);
   } catch (error) {
-    if (error.name === 'NotFoundError') {
-      return res.status(404).json({ error: error.message });
-    }
-    if (error.name === 'ConflictError') {
-      return res.status(400).json({ error: error.message });
-    }
-    res.status(500).json({ error: 'Server error' });
+    handleErrorResponse(res, error);
   }
 };
 
@@ -78,9 +70,20 @@ export const deleteDepartment = async (req, res, next) => {
     const result = await departmentService.deleteDepartment(req.params.id);
     res.status(200).json(result);
   } catch (error) {
-    if (error.name === 'NotFoundError') {
-      return res.status(404).json({ error: error.message });
-    }
-    res.status(500).json({ error: 'Server error' });
+    handleErrorResponse(res, error);
   }
 };
+
+/**
+ * Unified error handler
+ */
+function handleErrorResponse(res, error) {
+  const statusCode = error.statusCode || 500;
+  const response = { 
+    error: error.message || 'Server error',
+    ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+  };
+
+  console.error(`[${error.name}] ${error.message}`);
+  res.status(statusCode).json(response);
+}
