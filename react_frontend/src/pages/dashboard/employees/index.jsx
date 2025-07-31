@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Tab from '../../../layout/Tab';
 import TabHeader from '../../../components/TabHeader';
 import EmployeeWFullCard from '../../../components/EmployeeWFullCard';
+import EmployeeSearchBar from '../../../components/EmployeeSearchbar';
 
 const fetchEmployees = async () => {
     return new Promise((resolve) => {
@@ -84,12 +85,21 @@ const fetchEmployees = async () => {
                     updatedAt: '2024-07-22T11:30:00Z'
                 }
             ]);
-        }, 3000);
+        }, 0);
     });
 };
 
 const EmployeesList = ({ currentPath }) => {
     const [employees, setEmployees] = useState([]);
+    const [filteredEmployees, setFilteredEmployees] = useState(employees);
+
+    const handleSearchResults = (results) => {
+        setFilteredEmployees(results);
+    };
+
+    const handleClearSearch = () => {
+        setFilteredEmployees(employees);
+    };
 
     useEffect(() => {
         const loadEmployees = async () => {
@@ -99,6 +109,8 @@ const EmployeesList = ({ currentPath }) => {
         loadEmployees();
     }, []);
 
+
+
     return (
         <Tab>
             <TabHeader
@@ -107,9 +119,15 @@ const EmployeesList = ({ currentPath }) => {
                 currentPath={currentPath}
             />
             <div>
-                {employees.map(emp => (
-                    <div key={emp._id} className='mb-4'>
-                        <EmployeeWFullCard initialEmployee={emp} />
+                <EmployeeSearchBar
+                    employees={employees}
+                    onSearchResults={handleSearchResults}
+                    onClearSearch={handleClearSearch}
+                    placeholder="Search employees..."
+                />
+                {filteredEmployees.map(employee => (
+                    <div className='mb-4'>
+                        <EmployeeWFullCard key={employee.id} initialEmployee={employee} />
                     </div>
                 ))}
             </div>
