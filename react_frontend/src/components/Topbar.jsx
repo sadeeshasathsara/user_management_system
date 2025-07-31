@@ -355,7 +355,7 @@ const Topbar = ({ setSidebarOpen, currentPage }) => {
                         >
                             <Menu className="w-5 h-5" />
                         </button>
-                        <h2 className="ml-4 lg:ml-0 text-lg font-semibold text-gray-900">
+                        <h2 className="ml-4 flex items-center justify-center lg:ml-0 text-sm font-bold text-blue-800 border border-blue-800 text-center p-2 rounded-md bg-blue-100">
                             {getPageTitle(currentPage)}
                         </h2>
                     </div>
