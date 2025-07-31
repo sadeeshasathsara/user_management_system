@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Menu, Bell, Search, User, ChevronDown, UserCircle, LogOut, Filter, X, Clock, Users, Building2, FileText, Settings, BarChart3 } from 'lucide-react';
+import { logoutApi } from '../apis/logout.api';
 
 const SearchModal = ({ isOpen, onClose }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -336,8 +337,7 @@ const Topbar = ({ setSidebarOpen, currentPage }) => {
 
     const handleLogoutClick = async () => {
         setIsProfileDropdownOpen(false);
-        // Call the logout API
-        // await logoutApi();
+        await logoutApi();
     };
 
     const handleSearchClick = () => {
