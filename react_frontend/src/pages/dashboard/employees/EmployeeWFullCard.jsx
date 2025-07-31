@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
     User,
@@ -20,7 +21,8 @@ import {
     Briefcase,
     UserCheck,
     Home,
-    School
+    School,
+    Plus
 } from 'lucide-react';
 
 const EmployeeWFullCard = ({ initialEmployee }) => {
@@ -183,6 +185,18 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
         });
     };
 
+    const updateChild = (index, field, value) => {
+        const updatedChildren = [...(editData.family?.children || [])];
+        updatedChildren[index] = { ...updatedChildren[index], [field]: value };
+        setEditData({
+            ...editData,
+            family: {
+                ...editData.family,
+                children: updatedChildren
+            }
+        });
+    };
+
     // Add/remove parent
     const addParent = () => {
         const newParent = {
@@ -209,6 +223,19 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
             }
         });
     };
+
+    const updateParent = (index, field, value) => {
+        const updatedParents = [...(editData.family?.parents || [])];
+        updatedParents[index] = { ...updatedParents[index], [field]: value };
+        setEditData({
+            ...editData,
+            family: {
+                ...editData.family,
+                parents: updatedParents
+            }
+        });
+    };
+
     const handleDeleteConfirm = async () => {
         setIsLoading(true);
         try {
@@ -747,31 +774,163 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                                     )}
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <select
-                                        value={editData.family?.maritalStatus || ''}
-                                        onChange={(e) => setEditData({
-                                            ...editData,
-                                            family: { ...editData.family, maritalStatus: e.target.value }
-                                        })}
-                                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    >
-                                        <option value="">Select Marital Status</option>
-                                        <option value="Unmarried">Unmarried</option>
-                                        <option value="Married">Married</option>
-                                    </select>
-                                    {editData.family?.maritalStatus === 'Married' && (
-                                        <input
-                                            type="text"
-                                            placeholder="Spouse Name"
-                                            value={editData.family?.spouseName || ''}
+                                <div className="space-y-6">
+                                    {/* Basic Family Info */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <select
+                                            value={editData.family?.maritalStatus || ''}
                                             onChange={(e) => setEditData({
                                                 ...editData,
-                                                family: { ...editData.family, spouseName: e.target.value }
+                                                family: { ...editData.family, maritalStatus: e.target.value }
                                             })}
                                             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        />
-                                    )}
+                                        >
+                                            <option value="">Select Marital Status</option>
+                                            <option value="Unmarried">Unmarried</option>
+                                            <option value="Married">Married</option>
+                                        </select>
+                                        {editData.family?.maritalStatus === 'Married' && (
+                                            <input
+                                                type="text"
+                                                placeholder="Spouse Name"
+                                                value={editData.family?.spouseName || ''}
+                                                onChange={(e) => setEditData({
+                                                    ...editData,
+                                                    family: { ...editData.family, spouseName: e.target.value }
+                                                })}
+                                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                        )}
+                                    </div>
+
+                                    {/* Children Section */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h4 className="text-md font-semibold text-gray-700 flex items-center">
+                                                <Baby className="w-4 h-4 mr-2" />
+                                                Children
+                                            </h4>
+                                            <button
+                                                onClick={addChild}
+                                                className="flex items-center space-x-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors duration-200"
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                                <span>Add Child</span>
+                                            </button>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {editData.family?.children?.map((child, index) => (
+                                                <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <h5 className="text-sm font-medium text-gray-600">Child {index + 1}</h5>
+                                                        <button
+                                                            onClick={() => removeChild(index)}
+                                                            className="text-red-500 hover:text-red-700 p-1"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Child Name"
+                                                            value={child.name || ''}
+                                                            onChange={(e) => updateChild(index, 'name', e.target.value)}
+                                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                        />
+                                                        <input
+                                                            type="date"
+                                                            placeholder="Date of Birth"
+                                                            value={child.dateOfBirth ? child.dateOfBirth.split('T')[0] : ''}
+                                                            onChange={(e) => updateChild(index, 'dateOfBirth', e.target.value)}
+                                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                        />
+                                                        <select
+                                                            value={child.gender || ''}
+                                                            onChange={(e) => updateChild(index, 'gender', e.target.value)}
+                                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                        >
+                                                            <option value="">Select Gender</option>
+                                                            <option value="Male">Male</option>
+                                                            <option value="Female">Female</option>
+                                                        </select>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="School (Optional)"
+                                                            value={child.school || ''}
+                                                            onChange={(e) => updateChild(index, 'school', e.target.value)}
+                                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Grade (Optional)"
+                                                            value={child.grade || ''}
+                                                            onChange={(e) => updateChild(index, 'grade', e.target.value)}
+                                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Parents Section */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h4 className="text-md font-semibold text-gray-700 flex items-center">
+                                                <Users className="w-4 h-4 mr-2" />
+                                                Parents/Guardians
+                                            </h4>
+                                            <button
+                                                onClick={addParent}
+                                                className="flex items-center space-x-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors duration-200"
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                                <span>Add Parent</span>
+                                            </button>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {editData.family?.parents?.map((parent, index) => (
+                                                <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <h5 className="text-sm font-medium text-gray-600">Parent/Guardian {index + 1}</h5>
+                                                        <button
+                                                            onClick={() => removeParent(index)}
+                                                            className="text-red-500 hover:text-red-700 p-1"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Parent Name"
+                                                            value={parent.name || ''}
+                                                            onChange={(e) => updateParent(index, 'name', e.target.value)}
+                                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                        />
+                                                        <select
+                                                            value={parent.relationship || ''}
+                                                            onChange={(e) => updateParent(index, 'relationship', e.target.value)}
+                                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                        >
+                                                            <option value="">Select Relationship</option>
+                                                            <option value="Father">Father</option>
+                                                            <option value="Mother">Mother</option>
+                                                            <option value="Guardian">Guardian</option>
+                                                        </select>
+                                                        <input
+                                                            type="tel"
+                                                            placeholder="Contact Number"
+                                                            value={parent.contactNumber || ''}
+                                                            onChange={(e) => updateParent(index, 'contactNumber', e.target.value)}
+                                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -841,4 +1000,4 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
     );
 };
 
-export default EmployeeWFullCard;   
+export default EmployeeWFullCard;
