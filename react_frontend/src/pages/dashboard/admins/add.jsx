@@ -1,6 +1,7 @@
 import React from 'react';
 import Tab from '../../../layout/Tab';
 import TabHeader from '../../../components/TabHeader';
+import AddAdminForm from '../../../components/AddAdmin';
 
 const AddAdmin = ({ currentPath }) => (
     <Tab>
@@ -10,8 +11,8 @@ const AddAdmin = ({ currentPath }) => (
             currentPath={currentPath}
 
         />
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <p className="text-gray-600">Add admin form will be implemented here...</p>
+        <div className="">
+            <AddAdminForm />
         </div>
     </Tab>
 );
