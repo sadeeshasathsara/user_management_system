@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Tab from '../../../layout/Tab';
 import TabHeader from '../../../components/TabHeader';
-import EmployeeWFullCard from './EmployeeWFullCard';
+import EmployeeWFullCard from '../../../components/EmployeeWFullCard';
 
 const fetchEmployees = async () => {
     return new Promise((resolve) => {

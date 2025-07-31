@@ -1,7 +1,7 @@
 import React from 'react';
 import Tab from '../../../layout/Tab';
 import TabHeader from '../../../components/TabHeader';
-import DepartmentWFullCard from './DepartmentWFullCard';
+import DepartmentWFullCard from '../../../components/DepartmentWFullCard';
 
 const DepartmentsList = ({ currentPath }) => (
     <Tab>
