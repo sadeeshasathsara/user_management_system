@@ -60,6 +60,11 @@ const AddDepartmentForm = ({ onBack }) => {
         setLoading(true);
 
         try {
+            console.log({
+                name: formData.name.trim(),
+                description: formData.description.trim()
+            });
+
             // Replace with your actual API endpoint
             const response = await fetch('/api/departments', {
                 method: 'POST',

@@ -15,3 +15,10 @@
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-out;
 }
+
+input:focus,
+textarea:focus,
+select:focus,
+button:focus {
+  outline: none;
+}

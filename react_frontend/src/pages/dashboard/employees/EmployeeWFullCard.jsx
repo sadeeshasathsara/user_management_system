@@ -112,6 +112,15 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                     }
                 });
                 break;
+            case 'additional':
+                setEditData({
+                    ...editData,
+                    additional: {
+                        createdAt: employee.createdAt ? employee.createdAt.split('T')[0] : '',
+                        updatedAt: employee.updatedAt ? employee.updatedAt.split('T')[0] : ''
+                    }
+                });
+                break;
             default:
                 break;
         }
@@ -140,6 +149,10 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                     updatedEmployee.spouseName = editData.family.spouseName;
                     updatedEmployee.children = editData.family.children;
                     updatedEmployee.parents = editData.family.parents;
+                    break;
+                case 'additional':
+                    updatedEmployee.createdAt = editData.additional.createdAt;
+                    updatedEmployee.updatedAt = editData.additional.updatedAt;
                     break;
                 default:
                     break;
@@ -937,21 +950,76 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
 
                         {/* Additional Information */}
                         <div className="bg-gray-50 rounded-lg p-4">
-                            <div className="flex items-center space-x-2 mb-4">
-                                <Calendar className="w-5 h-5 text-blue-600" />
-                                <h3 className="text-lg font-semibold text-gray-900">Additional Information</h3>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <span className="font-medium text-gray-500">Created</span>
-                                    <p className="text-gray-900">{formatDate(employee.createdAt)}</p>
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center space-x-2">
+                                    <Calendar className="w-5 h-5 text-blue-600" />
+                                    <h3 className="text-lg font-semibold text-gray-900">Additional Information</h3>
                                 </div>
-                                <div>
-                                    <span className="font-medium text-gray-500">Last Updated</span>
-                                    <p className="text-gray-900">{formatDate(employee.updatedAt)}</p>
-                                </div>
+                                {!editingSections.additional ? (
+                                    <button
+                                        onClick={() => startEditing('additional')}
+                                        className="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors duration-200"
+                                    >
+                                        <Edit3 className="w-4 h-4" />
+                                    </button>
+                                ) : (
+                                    <div className="flex space-x-2">
+                                        <button
+                                            onClick={() => setEditingSections({ ...editingSections, additional: false })}
+                                            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200 rounded"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={() => saveSection('additional')}
+                                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                                        >
+                                            {isLoading ? 'Saving...' : 'Save'}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
+
+                            {!editingSections.additional ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span className="font-medium text-gray-500">Created</span>
+                                        <p className="text-gray-900">{formatDate(employee.createdAt)}</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-medium text-gray-500">Last Updated</span>
+                                        <p className="text-gray-900">{formatDate(employee.updatedAt)}</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <input
+                                        type="date"
+                                        value={editData.additional?.createdAt || ''}
+                                        onChange={(e) =>
+                                            setEditData({
+                                                ...editData,
+                                                additional: { ...editData.additional, createdAt: e.target.value }
+                                            })
+                                        }
+                                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                    <input
+                                        type="date"
+                                        value={editData.additional?.updatedAt || ''}
+                                        onChange={(e) =>
+                                            setEditData({
+                                                ...editData,
+                                                additional: { ...editData.additional, updatedAt: e.target.value }
+                                            })
+                                        }
+                                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                </div>
+                            )}
                         </div>
+
+
                     </div>
                 </div>
             </ModalBackdrop>
