@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
     Wallet,
     Edit3,
@@ -18,64 +19,88 @@ import {
     ChevronUp
 } from 'lucide-react';
 
-const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
-    // Mock EPF records if none provided
-    const defaultEpfRecords = [
-        {
-            _id: '1',
-            user: {
-                _id: 'user1',
-                epfNumber: 'EPF001234',
-                name: 'John Doe',
-                email: 'john.doe@company.com',
-                department: { name: 'Human Resources' },
-                employmentType: 'Permanent',
-                basicSalary: 75000
-            },
-            expense: 18500,
-            year: new Date('2024-01-01'),
-            maxEpf: 25000,
-            createdAt: '2024-01-15T10:30:00Z',
-            updatedAt: '2024-07-20T14:45:00Z'
-        },
-        {
-            _id: '2',
-            user: {
-                _id: 'user2',
-                epfNumber: 'EPF005678',
-                name: 'Jane Smith',
-                email: 'jane.smith@company.com',
-                department: { name: 'Finance' },
-                employmentType: 'Permanent',
-                basicSalary: 85000
-            },
-            expense: 22000,
-            year: new Date('2024-01-01'),
-            maxEpf: 25000,
-            createdAt: '2024-02-10T09:15:00Z',
-            updatedAt: '2024-07-25T16:30:00Z'
-        },
-        {
-            _id: '3',
-            user: {
-                _id: 'user3',
-                epfNumber: 'EPF009876',
-                name: 'Mike Johnson',
-                email: 'mike.johnson@company.com',
-                department: { name: 'IT' },
-                employmentType: 'Contract',
-                basicSalary: 65000
-            },
-            expense: 15750,
-            year: new Date('2023-01-01'),
-            maxEpf: 25000,
-            createdAt: '2023-03-05T11:20:00Z',
-            updatedAt: '2024-06-15T10:45:00Z'
-        }
-    ];
+const fetchEpfRecords = async () => {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve([
+                {
+                    _id: '1',
+                    user: {
+                        _id: 'user1',
+                        epfNumber: 'EPF001234',
+                        name: 'John Doe',
+                        email: 'john.doe@company.com',
+                        department: { name: 'Human Resources' },
+                        employmentType: 'Permanent',
+                        basicSalary: 75000
+                    },
+                    expense: 18500,
+                    year: new Date('2024-01-01'),
+                    maxEpf: 25000,
+                    createdAt: '2024-01-15T10:30:00Z',
+                    updatedAt: '2024-07-20T14:45:00Z'
+                },
+                {
+                    _id: '2',
+                    user: {
+                        _id: 'user2',
+                        epfNumber: 'EPF005678',
+                        name: 'Jane Smith',
+                        email: 'jane.smith@company.com',
+                        department: { name: 'Finance' },
+                        employmentType: 'Permanent',
+                        basicSalary: 85000
+                    },
+                    expense: 22000,
+                    year: new Date('2024-01-01'),
+                    maxEpf: 25000,
+                    createdAt: '2024-02-10T09:15:00Z',
+                    updatedAt: '2024-07-25T16:30:00Z'
+                },
+                {
+                    _id: '3',
+                    user: {
+                        _id: 'user3',
+                        epfNumber: 'EPF009876',
+                        name: 'Mike Johnson',
+                        email: 'mike.johnson@company.com',
+                        department: { name: 'IT' },
+                        employmentType: 'Contract',
+                        basicSalary: 65000
+                    },
+                    expense: 15750,
+                    year: new Date('2023-01-01'),
+                    maxEpf: 25000,
+                    createdAt: '2023-03-05T11:20:00Z',
+                    updatedAt: '2024-06-15T10:45:00Z'
+                },
+                {
+                    _id: '4',
+                    user: {
+                        _id: 'user4',
+                        epfNumber: 'EPF001234',
+                        name: 'John Doe',
+                        email: 'john.doe@company.com',
+                        department: { name: 'Human Resources' },
+                        employmentType: 'Permanent',
+                        basicSalary: 75000
+                    },
+                    expense: 20000,
+                    year: new Date('2023-01-01'),
+                    maxEpf: 25000,
+                    createdAt: '2023-01-15T10:30:00Z',
+                    updatedAt: '2024-05-10T14:45:00Z'
+                }
+            ]);
+        }, 0);
+    });
+};
 
-    const [epfRecords, setEpfRecords] = useState(initialEpfRecords || defaultEpfRecords);
+const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
+    const [allEpfRecords, setAllEpfRecords] = useState([]);
+    const [filteredEpfRecords, setFilteredEpfRecords] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isUrlFiltered, setIsUrlFiltered] = useState(false);
     const [expandedCard, setExpandedCard] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -88,13 +113,90 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
     });
     const [isLoading, setIsLoading] = useState(false);
 
-    // Filter EPF records based on search term
-    const filteredEpfRecords = epfRecords.filter(record =>
-        record.user.epfNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.user.department.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        new Date(record.year).getFullYear().toString().includes(searchTerm)
-    );
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    // Fetch EPF records on component mount
+    useEffect(() => {
+        const loadEpfRecords = async () => {
+            if (initialEpfRecords) {
+                setAllEpfRecords(initialEpfRecords);
+                setFilteredEpfRecords(initialEpfRecords);
+            } else {
+                const data = await fetchEpfRecords();
+                setAllEpfRecords(data);
+                setFilteredEpfRecords(data);
+            }
+        };
+        loadEpfRecords();
+    }, [initialEpfRecords]);
+
+    const handleClearFilters = () => {
+        const params = new URLSearchParams(location.search);
+        params.delete('id');
+
+        const newSearch = params.toString();
+        navigate({
+            pathname: location.pathname,
+            search: newSearch ? `?${newSearch}` : ''
+        });
+    };
+
+    // Handle URL parameter filtering
+    useEffect(() => {
+        if (allEpfRecords.length === 0) return;
+
+        const urlParams = new URLSearchParams(location.search);
+        const id = urlParams.get('id');
+
+        console.log('URL id:', id);
+        console.log('User IDs:', allEpfRecords.map(r => r.user._id));
+
+        if (id) {
+            const filteredRecords = allEpfRecords.filter(record =>
+                String(record._id).trim() === String(id).trim()
+            );
+            console.log('Filtered:', filteredRecords);
+            setFilteredEpfRecords(filteredRecords);
+            setIsUrlFiltered(true);
+        } else {
+            setFilteredEpfRecords(allEpfRecords);
+            setIsUrlFiltered(false);
+        }
+    }, [location.search, allEpfRecords]);
+
+
+
+    // Handle search filtering (only when not URL filtered)
+    const performSearch = () => {
+        if (isUrlFiltered) {
+            return; // Don't search when URL filtering is active
+        }
+
+        if (!searchTerm.trim()) {
+            setFilteredEpfRecords(allEpfRecords);
+            return;
+        }
+
+        const filtered = allEpfRecords.filter(record =>
+            record.user.epfNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            record.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            record.user.department.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            new Date(record.year).getFullYear().toString().includes(searchTerm)
+        );
+        setFilteredEpfRecords(filtered);
+    };
+
+    // Effect to trigger search when search term changes
+    useEffect(() => {
+        if (isUrlFiltered) return;
+
+        const timeoutId = setTimeout(() => {
+            performSearch();
+        }, 300); // Debounce search
+
+        return () => clearTimeout(timeoutId);
+    }, [searchTerm, allEpfRecords, isUrlFiltered]);
 
     // Calculate EPF usage percentage
     const calculateUsagePercentage = (expense, maxEpf) => {
@@ -142,7 +244,7 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
         try {
             await new Promise(resolve => setTimeout(resolve, 1500));
 
-            const updatedRecords = epfRecords.map(record =>
+            const updatedRecords = allEpfRecords.map(record =>
                 record._id === selectedRecord._id
                     ? {
                         ...record,
@@ -153,7 +255,7 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
                     : record
             );
 
-            setEpfRecords(updatedRecords);
+            setAllEpfRecords(updatedRecords);
             setShowEditModal(false);
             setSelectedRecord(null);
             showSuccess('EPF record updated successfully!');
@@ -170,8 +272,8 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
         try {
             await new Promise(resolve => setTimeout(resolve, 1500));
 
-            const updatedRecords = epfRecords.filter(record => record._id !== selectedRecord._id);
-            setEpfRecords(updatedRecords);
+            const updatedRecords = allEpfRecords.filter(record => record._id !== selectedRecord._id);
+            setAllEpfRecords(updatedRecords);
             setShowDeleteModal(false);
             setSelectedRecord(null);
             setExpandedCard(null);
@@ -252,6 +354,10 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
                     )}
                 </div>
 
+                <div className='w-full text-right'>
+                    <p onClick={handleClearFilters} className='mr-1 text-blue-600 cursor-pointer'>Clear Filters</p>
+                </div>
+
                 {/* EPF Records */}
                 {filteredEpfRecords.length === 0 ? (
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
@@ -295,8 +401,8 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
                                                 <div className="w-24 min-w-24 text-center">
                                                     <p className="text-xs text-gray-500 uppercase tracking-wide">EPF Usage</p>
                                                     <p className={`font-semibold ${usagePercentage >= 90 ? 'text-red-600' :
-                                                            usagePercentage >= 75 ? 'text-yellow-600' :
-                                                                'text-green-600'
+                                                        usagePercentage >= 75 ? 'text-yellow-600' :
+                                                            'text-green-600'
                                                         }`}>
                                                         {usagePercentage.toFixed(0)}%
                                                     </p>
@@ -382,16 +488,16 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
                                                         <div className="w-full bg-gray-200/80 rounded-full h-3 shadow-inner">
                                                             <div
                                                                 className={`h-3 rounded-full transition-all duration-500 shadow-sm ${usagePercentage >= 90 ? 'bg-gradient-to-r from-red-500 to-red-600' :
-                                                                        usagePercentage >= 75 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
-                                                                            'bg-gradient-to-r from-green-500 to-emerald-600'
+                                                                    usagePercentage >= 75 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
+                                                                        'bg-gradient-to-r from-green-500 to-emerald-600'
                                                                     }`}
                                                                 style={{ width: `${usagePercentage}%` }}
                                                             />
                                                         </div>
                                                         <div className="flex items-center justify-between text-sm">
                                                             <span className={`font-semibold ${usagePercentage >= 90 ? 'text-red-600' :
-                                                                    usagePercentage >= 75 ? 'text-orange-600' :
-                                                                        'text-green-600'
+                                                                usagePercentage >= 75 ? 'text-orange-600' :
+                                                                    'text-green-600'
                                                                 }`}>
                                                                 {usagePercentage.toFixed(1)}% Used
                                                             </span>

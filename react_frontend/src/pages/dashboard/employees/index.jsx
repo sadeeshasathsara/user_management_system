@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Tab from '../../../layout/Tab';
 import TabHeader from '../../../components/TabHeader';
 import EmployeeWFullCard from '../../../components/EmployeeWFullCard';
@@ -91,7 +92,10 @@ const fetchEmployees = async () => {
 
 const EmployeesList = ({ currentPath }) => {
     const [employees, setEmployees] = useState([]);
-    const [filteredEmployees, setFilteredEmployees] = useState(employees);
+    const [filteredEmployees, setFilteredEmployees] = useState([]);
+    const [isUrlFiltered, setIsUrlFiltered] = useState(false);
+    const location = useLocation();
+    const navigate = useNavigate();
 
     const handleSearchResults = (results) => {
         setFilteredEmployees(results);
@@ -99,16 +103,37 @@ const EmployeesList = ({ currentPath }) => {
 
     const handleClearSearch = () => {
         setFilteredEmployees(employees);
+        // Clear URL parameters when clearing search
+        if (location.search) {
+            navigate(location.pathname, { replace: true });
+        }
     };
 
     useEffect(() => {
         const loadEmployees = async () => {
             const data = await fetchEmployees();
             setEmployees(data);
+            setFilteredEmployees(data); // Initialize filteredEmployees with loaded data
         };
         loadEmployees();
     }, []);
 
+    // Handle URL parameter filtering
+    useEffect(() => {
+        if (employees.length === 0) return;
+
+        const urlParams = new URLSearchParams(location.search);
+        const empId = urlParams.get('emp');
+
+        if (empId) {
+            const filteredEmployee = employees.filter(employee => employee._id === empId);
+            setFilteredEmployees(filteredEmployee);
+            setIsUrlFiltered(true); // mark as URL-filtered
+        } else {
+            setFilteredEmployees(employees);
+            setIsUrlFiltered(false); // no URL filter
+        }
+    }, [location.search, employees]);
 
 
     return (
@@ -119,15 +144,51 @@ const EmployeesList = ({ currentPath }) => {
                 currentPath={currentPath}
             />
             <div>
+                {/* Show URL filter info if filtering by employee ID */}
+                {(() => {
+                    const urlParams = new URLSearchParams(location.search);
+                    const empId = urlParams.get('emp');
+                    if (empId) {
+                        const employee = employees.find(emp => emp._id === empId);
+                        return (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center">
+                                        <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                                        <span className="text-blue-800 font-medium">
+                                            {employee
+                                                ? `Showing employee: ${employee.name} (${employee.epfNumber})`
+                                                : `Filtering by Employee ID: ${empId} (Employee not found)`
+                                            }
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            navigate(location.pathname, { replace: true });
+                                            setFilteredEmployees(employees);
+                                        }}
+                                        className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                                    >
+                                        Show All Employees
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    }
+                    return null;
+                })()}
+
                 <EmployeeSearchBar
                     employees={employees}
                     onSearchResults={handleSearchResults}
                     onClearSearch={handleClearSearch}
                     placeholder="Search employees..."
+                    disabled={isUrlFiltered}
                 />
+
                 {filteredEmployees.map(employee => (
-                    <div className='mb-4'>
-                        <EmployeeWFullCard key={employee.id} initialEmployee={employee} />
+                    <div key={employee._id} className='mb-4'>
+                        <EmployeeWFullCard initialEmployee={employee} />
                     </div>
                 ))}
             </div>
