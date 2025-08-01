@@ -3,6 +3,8 @@ import { loginController } from '../controllers/login.controller.js';
 import { registerController } from '../controllers/register.controller.js';
 import { logoutController } from '../controllers/logout.controller.js';
 import { verifyAuth } from '../middleware/checkauth.middleware.js';
+import { createDepartment, getAllDepartments, getDepartmentById, updateDepartment, deleteDepartment }
+    from '../controllers/department.controller.js';
 
 const router = express.Router();
 import { upload } from '../middleware/multer.middleware.js'
@@ -12,10 +14,11 @@ router.post('/login', loginController);
 router.post('/register', registerController);
 router.get('/logout', logoutController);
 
-router.post('/emp/', verifyAuth, upload.single('profilePicture'), createEmployeeController);
-router.put('/emp/:id', verifyAuth, upload.single('profilePicture'), updateEmployeeController);
-router.delete('/emp/:id', verifyAuth, deleteEmployeeController);
-router.get('/emp/', verifyAuth, getEmployeesController);
+router.post('/department', createDepartment);
+router.get('/department', getAllDepartments);
+router.get('/department/:id', getDepartmentById);
+router.put('/department/:id', updateDepartment);
+router.delete('/department/:id', deleteDepartment);
 
 router.get('/check-auth', verifyAuth, (req, res) => {
     res.status(200).json({
