@@ -14,6 +14,11 @@ router.post('/login', loginController);
 router.post('/register', registerController);
 router.get('/logout', logoutController);
 
+router.post('/emp/', verifyAuth, upload.single('profilePicture'), createEmployeeController);
+router.put('/emp/:id', verifyAuth, upload.single('profilePicture'), updateEmployeeController);
+router.delete('/emp/:id', verifyAuth, deleteEmployeeController);
+router.get('/emp/', verifyAuth, getEmployeesController);
+
 router.post('/department', createDepartment);
 router.get('/department', getAllDepartments);
 router.get('/department/:id', getDepartmentById);
