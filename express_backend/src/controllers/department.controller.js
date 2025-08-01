@@ -19,18 +19,15 @@ export const createDepartment = async (req, res, next) => {
  * @route   GET /departments
  * @access  Public
  */
-export const getAllDepartments = async (req, res, next) => {
+export const getAllDepartments = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query;
-    const result = await departmentService.getAllDepartments({ 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-    res.status(200).json(result);
-  } catch (error) {
-    handleErrorResponse(res, error);
+    const departments = await departmentService.getAllDepartments(req.query);
+    res.status(200).json(departments);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 /**
  * @desc    Get single department by ID
@@ -79,7 +76,7 @@ export const deleteDepartment = async (req, res, next) => {
  */
 function handleErrorResponse(res, error) {
   const statusCode = error.statusCode || 500;
-  const response = { 
+  const response = {
     error: error.message || 'Server error',
     ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
   };

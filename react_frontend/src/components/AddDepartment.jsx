@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Building2, Save, ArrowLeft, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { createDepartment } from '../apis/department.api';
 
 const AddDepartmentForm = ({ onBack }) => {
     const [formData, setFormData] = useState({
@@ -65,21 +66,15 @@ const AddDepartmentForm = ({ onBack }) => {
                 description: formData.description.trim()
             });
 
-            // Replace with your actual API endpoint
-            const response = await fetch('/api/departments', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name: formData.name.trim(),
-                    description: formData.description.trim()
-                })
+            const res = await createDepartment({
+                name: formData.name.trim(),
+                description: formData.description.trim()
             });
 
-            const data = await response.json();
+            console.log(res);
 
-            if (response.ok) {
+
+            if (res.data.name == formData.name.trim()) {
                 showNotification('success', 'Department created successfully!');
                 // Reset form
                 setFormData({ name: '', description: '' });

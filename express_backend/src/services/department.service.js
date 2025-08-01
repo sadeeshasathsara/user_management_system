@@ -60,23 +60,42 @@ class DepartmentService {
   /**
    * Get all departments with optional pagination
    */
-  async getAllDepartments({ page = 1, limit = 10 } = {}) {
-    const skip = (page - 1) * limit;
+  async getAllDepartments(query = {}) {
+    const baseUrl = process.env.EXPRESS_URL || 'http://localhost:5000';
+    const { search, page = 1, limit = 10, ...filters } = query;
+
+    const mongoQuery = { ...filters };
+
+    // Search by department name or description (case-insensitive)
+    if (search) {
+      const regex = new RegExp(search, 'i');
+      mongoQuery.$or = [
+        { name: regex },
+        { description: regex }
+      ];
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
     const [departments, count] = await Promise.all([
-      Department.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
-      Department.countDocuments()
+      Department.find(mongoQuery)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Department.countDocuments(mongoQuery)
     ]);
 
     return {
+      success: true,
       data: departments,
       pagination: {
         total: count,
-        page,
-        limit,
+        page: parseInt(page),
+        limit: parseInt(limit),
         totalPages: Math.ceil(count / limit)
       }
     };
   }
+
 
   /**
    * Get department by ID

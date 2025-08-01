@@ -11,23 +11,16 @@ import {
     Users,
     CheckCircle
 } from 'lucide-react';
+import { deleteDepartment, updateDepartment } from '../apis/department.api';
 
 const DepartmentWFullCard = ({ initialDepartment }) => {
-    // Mock department data if none provided
-    const defaultDepartment = {
-        _id: '1',
-        name: 'Human Resources',
-        description: 'Responsible for managing employee relations, recruitment, training, and organizational development. Ensures compliance with labor laws and maintains a positive work environment.',
-        createdAt: '2024-01-15T10:30:00Z',
-        updatedAt: '2024-07-20T14:45:00Z'
-    };
-
-    const [department, setDepartment] = useState(initialDepartment || defaultDepartment);
+    const [department, setDepartment] = useState(initialDepartment);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const [editData, setEditData] = useState({
+        _id: department._id,
         name: department.name,
         description: department.description
     });
@@ -59,7 +52,10 @@ const DepartmentWFullCard = ({ initialDepartment }) => {
         setIsLoading(true);
         try {
             // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            await updateDepartment(editData);
+
+            // Show success message
+            showSuccess('Department updated successfully!');
 
             // Update department data
             const updatedDepartment = {
@@ -84,8 +80,7 @@ const DepartmentWFullCard = ({ initialDepartment }) => {
     const handleDeleteConfirm = async () => {
         setIsLoading(true);
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            await deleteDepartment(department._id);
 
             setIsDeleted(true);
             setShowDeleteModal(false);
@@ -102,6 +97,7 @@ const DepartmentWFullCard = ({ initialDepartment }) => {
     // Reset edit data when modal opens
     const openEditModal = () => {
         setEditData({
+            _id: department._id,
             name: department.name,
             description: department.description
         });

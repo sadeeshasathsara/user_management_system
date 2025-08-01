@@ -2,12 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Menu, Bell, Search, User, ChevronDown, UserCircle, LogOut, Filter, X, Clock, Users, Building2, FileText, Settings, BarChart3, AlertCircle } from 'lucide-react';
 import { logoutApi } from '../apis/logout.api';
 import { getEmployeesApi } from '../apis/employee.api';
+import { fetchDepartmentsApi } from '../apis/department.api';
 
 const SearchModal = ({ isOpen, onClose }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedFilter, setSelectedFilter] = useState('all');
     const [recentSearches, setRecentSearches] = useState([]);
     const [employees, setEmployees] = useState([]);
+    const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const searchInputRef = useRef(null);
@@ -33,11 +35,7 @@ const SearchModal = ({ isOpen, onClose }) => {
         { title: 'EPF Configurations', url: '/settings/epf', description: 'Configure EPF rates, calculations, and system settings', keywords: ['settings', 'configuration', 'epf', 'setup', 'preferences', 'rates', 'calculations'] },
     ];
 
-    const mockDepartments = [
-        { id: '1', name: 'Information Technology', description: 'IT Department handling software development' },
-        { id: '2', name: 'Human Resources', description: 'HR Department managing employee relations' },
-        { id: '3', name: 'Finance', description: 'Finance Department handling accounting' },
-    ];
+
 
     const mockEpfRecords = [
         { id: '1', employeeName: 'John Doe', expense: 5000, year: '2024' },
@@ -75,19 +73,45 @@ const SearchModal = ({ isOpen, onClose }) => {
         }
     };
 
+    // API call to fetch departments
+    const fetchDepartments = async (query) => {
+        if (!query || query.trim().length < 2) {
+            setDepartments([]);
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            const response = await fetchDepartmentsApi({ search: query.trim() });
+            setDepartments(response.data || response || []);
+        } catch (err) {
+            console.error('Error fetching departments:', err);
+            setError('Failed to fetch departments');
+            setDepartments([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Load recent searches from memory on component mount
     useEffect(() => {
         // In a real application, you would use localStorage here:
-        const savedSearches = localStorage.getItem('recentSearches');
-        if (savedSearches) {
-            setRecentSearches(JSON.parse(savedSearches));
-        }
+        // const savedSearches = localStorage.getItem('recentSearches');
+        // if (savedSearches) {
+        //     setRecentSearches(JSON.parse(savedSearches));
+        // }
+
+        // For now, using default searches since localStorage is not available in this environment
+        setRecentSearches(['John Doe', 'HR Department', 'EPF Entry 2024']);
     }, []);
 
     // Save recent searches to memory whenever they change
     const saveRecentSearches = (searches) => {
+        setRecentSearches(searches);
         // In a real application, you would save to localStorage here:
-        localStorage.setItem('recentSearches', JSON.stringify(searches));
+        // localStorage.setItem('recentSearches', JSON.stringify(searches));
     };
 
     // Debounced search effect
@@ -96,12 +120,27 @@ const SearchModal = ({ isOpen, onClose }) => {
             clearTimeout(debounceRef.current);
         }
 
-        if (searchQuery && (selectedFilter === 'all' || selectedFilter === 'employees')) {
+        if (searchQuery) {
             debounceRef.current = setTimeout(() => {
-                fetchEmployees(searchQuery);
+                if (selectedFilter === 'all') {
+                    // Fetch both employees and departments for 'all' filter
+                    fetchEmployees(searchQuery);
+                    fetchDepartments(searchQuery);
+                } else if (selectedFilter === 'employees') {
+                    fetchEmployees(searchQuery);
+                    setDepartments([]);
+                } else if (selectedFilter === 'departments') {
+                    fetchDepartments(searchQuery);
+                    setEmployees([]);
+                } else {
+                    setEmployees([]);
+                    setDepartments([]);
+                    setLoading(false);
+                }
             }, 300); // 300ms debounce
         } else {
             setEmployees([]);
+            setDepartments([]);
             setLoading(false);
         }
 
@@ -128,11 +167,6 @@ const SearchModal = ({ isOpen, onClose }) => {
                     item.title.toLowerCase().includes(lowerQuery) ||
                     item.description.toLowerCase().includes(lowerQuery) ||
                     item.keywords.some(keyword => keyword.toLowerCase().includes(lowerQuery))
-                );
-            case 'departments':
-                return mockDepartments.filter(dept =>
-                    dept.name.toLowerCase().includes(lowerQuery) ||
-                    dept.description.toLowerCase().includes(lowerQuery)
                 );
             case 'epf':
                 return mockEpfRecords.filter(record =>
@@ -165,9 +199,13 @@ const SearchModal = ({ isOpen, onClose }) => {
                 email: emp.email
             }));
 
-            // Department results
-            const departmentResults = filterResults([], searchQuery, 'departments')
-                .map(item => ({ ...item, type: 'departments' }));
+            // Department results (from API)
+            const departmentResults = departments.map(dept => ({
+                ...dept,
+                type: 'departments',
+                name: dept.name,
+                description: dept.description
+            }));
 
             // EPF results
             const epfResults = filterResults([], searchQuery, 'epf')
@@ -183,6 +221,13 @@ const SearchModal = ({ isOpen, onClose }) => {
                 department: emp.department?.name || emp.department,
                 email: emp.email
             }));
+        } else if (selectedFilter === 'departments') {
+            results = departments.map(dept => ({
+                ...dept,
+                type: 'departments',
+                name: dept.name,
+                description: dept.description
+            }));
         } else {
             results = filterResults([], searchQuery, selectedFilter)
                 .map(item => ({ ...item, type: selectedFilter }));
@@ -197,6 +242,9 @@ const SearchModal = ({ isOpen, onClose }) => {
         } else if (result.type === 'employees') {
             // Navigate to employee page with emp parameter
             window.location.href = `/employees?emp=${result._id || result.id}`;
+        } else if (result.type === 'departments') {
+            // Navigate to departments page with dept parameter
+            window.location.href = `/departments?dept=${result._id || result.id}`;
         }
 
         // Add to recent searches
@@ -221,9 +269,14 @@ const SearchModal = ({ isOpen, onClose }) => {
 
     const handleRecentSearchClick = (search) => {
         setSearchQuery(search);
-        // Optionally auto-search when clicking recent search
-        if (selectedFilter === 'all' || selectedFilter === 'employees') {
+        // Auto-search when clicking recent search based on current filter
+        if (selectedFilter === 'all') {
             fetchEmployees(search);
+            fetchDepartments(search);
+        } else if (selectedFilter === 'employees') {
+            fetchEmployees(search);
+        } else if (selectedFilter === 'departments') {
+            fetchDepartments(search);
         }
     };
 
