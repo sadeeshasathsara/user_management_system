@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const employee = new mongoose.Schema({
+const employeeSchema = new mongoose.Schema({
     epfNumber: {
         type: String,
         required: true,
@@ -98,5 +98,5 @@ const employee = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-const Employee = mongoose.model('User', employeeSchema);
+const Employee = mongoose.model('Employee', employeeSchema);
 export default Employee;

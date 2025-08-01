@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Save, ArrowLeft, AlertCircle, CheckCircle, X, Plus, Trash2, Upload, Image } from 'lucide-react';
 import PhoneInput from 'react-phone-input-2';
+import { createEmployeeApi } from '../apis/employee.api';
 
 const AddEmployeeForm = ({ onBack }) => {
     const [formData, setFormData] = useState({
@@ -15,7 +16,6 @@ const AddEmployeeForm = ({ onBack }) => {
         joinedDate: '',
         basicSalary: '',
         employmentType: '',
-        profilePicture: '',
         profilePictureFile: null,
         maritalStatus: 'Unmarried',
         spouseName: '',
@@ -265,7 +265,6 @@ const AddEmployeeForm = ({ onBack }) => {
             setFormData(prev => ({
                 ...prev,
                 profilePictureFile: file,
-                profilePicture: '' // Clear URL if file is selected
             }));
             setErrors(prev => ({ ...prev, profilePictureFile: '' }));
         }
@@ -479,14 +478,10 @@ const AddEmployeeForm = ({ onBack }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!validateForm()) {
-            return;
-        }
-
+        if (!validateForm()) return;
         setLoading(true);
 
         try {
-            // Prepare data for submission
             const submitData = {
                 ...formData,
                 basicSalary: formData.basicSalary ? parseFloat(formData.basicSalary) : undefined,
@@ -495,54 +490,18 @@ const AddEmployeeForm = ({ onBack }) => {
                 children: formData.children.map(child => ({
                     ...child,
                     dateOfBirth: child.dateOfBirth || undefined
-                }))
+                })),
             };
 
-            // Handle file upload if present
-            if (formData.profilePictureFile) {
-                const formDataUpload = new FormData();
-                formDataUpload.append('profilePicture', formData.profilePictureFile);
+            // Call Axios API
+            const response = await createEmployeeApi(submitData);
 
-                // Upload file first (replace with your upload endpoint)
-                const uploadResponse = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formDataUpload
-                });
-
-                if (uploadResponse.ok) {
-                    const uploadData = await uploadResponse.json();
-                    submitData.profilePicture = uploadData.url;
-                }
-            }
-
-            console.log('Submitting employee data:', submitData);
-
-            // Replace with your actual API endpoint
-            const response = await fetch('/api/employees', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(submitData)
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                showNotification('success', 'Employee created successfully!');
-                handleReset();
-            } else {
-                if (data.errors) {
-                    setErrors(data.errors);
-                } else if (data.message) {
-                    showNotification('error', data.message);
-                } else {
-                    showNotification('error', 'Failed to create employee');
-                }
-            }
-        } catch (error) {
-            console.error('Error creating employee:', error);
-            showNotification('error', 'Network error. Please try again.');
+            showNotification('success', 'Employee created successfully!');
+            handleReset();
+        } catch (err) {
+            console.error('Error creating employee:', err);
+            const msg = err.message || 'Failed to create employee';
+            showNotification('error', msg);
         } finally {
             setLoading(false);
         }
@@ -561,7 +520,6 @@ const AddEmployeeForm = ({ onBack }) => {
             joinedDate: '',
             basicSalary: '',
             employmentType: '',
-            profilePicture: '',
             profilePictureFile: null,
             maritalStatus: 'Unmarried',
             spouseName: '',
@@ -1285,7 +1243,13 @@ const AddEmployeeForm = ({ onBack }) => {
                             </button>
                             <button
                                 type="submit"
-                                disabled={loading || !formData.epfNumber.trim() || !formData.name.trim() || !formData.department || !formData.contactNumber.trim() || Object.keys(errors).length > 0}
+                                // Replace the current disabled condition with:
+                                disabled={loading ||
+                                    !formData.epfNumber.trim() ||
+                                    !formData.name.trim() ||
+                                    !formData.department ||
+                                    !formData.contactNumber.trim() ||
+                                    Object.values(errors).some(error => error !== '')}
                                 className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                             >
                                 {loading ? (
