@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Save, ArrowLeft, AlertCircle, CheckCircle, X, Plus, Trash2, Upload, Image } from 'lucide-react';
 import PhoneInput from 'react-phone-input-2';
 import { createEmployeeApi } from '../apis/employee.api';
+import { fetchDepartmentsApi } from '../apis/department.api';
 
 const AddEmployeeForm = ({ onBack }) => {
     const [formData, setFormData] = useState({
@@ -16,7 +17,7 @@ const AddEmployeeForm = ({ onBack }) => {
         joinedDate: '',
         basicSalary: '',
         employmentType: '',
-        profilePictureFile: null,
+        profilePicture: null,
         maritalStatus: 'Unmarried',
         spouseName: '',
         parents: [],
@@ -35,18 +36,10 @@ const AddEmployeeForm = ({ onBack }) => {
         const fetchDepartments = async () => {
             try {
                 // Replace with actual API endpoint
-                const response = await fetch('/api/departments');
-                const data = await response.json();
-                setDepartments(data);
+                const response = await fetchDepartmentsApi();
+                setDepartments(response.data);
             } catch (error) {
-                // Mock data for demonstration
-                setDepartments([
-                    { _id: '1', name: 'Human Resources' },
-                    { _id: '2', name: 'Information Technology' },
-                    { _id: '3', name: 'Finance' },
-                    { _id: '4', name: 'Marketing' },
-                    { _id: '5', name: 'Operations' }
-                ]);
+                showNotification('error', 'Failed to fetch departments');
             }
         };
         fetchDepartments();
@@ -258,15 +251,15 @@ const AddEmployeeForm = ({ onBack }) => {
         if (file) {
             const error = validateProfilePicture(file);
             if (error) {
-                setErrors(prev => ({ ...prev, profilePictureFile: error }));
+                setErrors(prev => ({ ...prev, profilePicture: error }));
                 return;
             }
 
             setFormData(prev => ({
                 ...prev,
-                profilePictureFile: file,
+                profilePicture: file,
             }));
-            setErrors(prev => ({ ...prev, profilePictureFile: '' }));
+            setErrors(prev => ({ ...prev, profilePicture: '' }));
         }
     };
 
@@ -493,6 +486,9 @@ const AddEmployeeForm = ({ onBack }) => {
                 })),
             };
 
+            console.log(submitData);
+
+
             // Call Axios API
             const response = await createEmployeeApi(submitData);
 
@@ -520,7 +516,7 @@ const AddEmployeeForm = ({ onBack }) => {
             joinedDate: '',
             basicSalary: '',
             employmentType: '',
-            profilePictureFile: null,
+            profilePicture: null,
             maritalStatus: 'Unmarried',
             spouseName: '',
             parents: [],
@@ -1191,37 +1187,37 @@ const AddEmployeeForm = ({ onBack }) => {
                             <div className="space-y-4">
                                 {/* File Upload */}
                                 <div>
-                                    <label htmlFor="profilePictureFile" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="profilePicture" className="block text-sm font-medium text-gray-700 mb-2">
                                         Upload Profile Picture
                                     </label>
                                     <div className="flex items-center space-x-4">
-                                        <label htmlFor="profilePictureFile" className="cursor-pointer inline-flex items-center px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 hover:bg-blue-100 transition-colors duration-200">
+                                        <label htmlFor="profilePicture" className="cursor-pointer inline-flex items-center px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 hover:bg-blue-100 transition-colors duration-200">
                                             <Upload className="w-4 h-4 mr-2" />
                                             <span>Choose Image</span>
                                         </label>
                                         <input
                                             type="file"
-                                            id="profilePictureFile"
-                                            name="profilePictureFile"
+                                            id="profilePicture"
+                                            name="profilePicture"
                                             onChange={handleFileChange}
                                             accept="image/*"
                                             className="hidden"
                                             disabled={loading}
                                         />
-                                        {formData.profilePictureFile && (
+                                        {formData.profilePicture && (
                                             <div className="flex items-center space-x-2 text-sm text-green-600">
                                                 <Image className="w-4 h-4" />
-                                                <span>{formData.profilePictureFile.name}</span>
+                                                <span>{formData.profilePicture.name}</span>
                                                 <span className="text-gray-500">
-                                                    ({(formData.profilePictureFile.size / 1024 / 1024).toFixed(2)} MB)
+                                                    ({(formData.profilePicture.size / 1024 / 1024).toFixed(2)} MB)
                                                 </span>
                                             </div>
                                         )}
                                     </div>
-                                    {errors.profilePictureFile && (
+                                    {errors.profilePicture && (
                                         <p className="mt-2 text-sm text-red-600 flex items-center space-x-1">
                                             <AlertCircle className="w-4 h-4" />
-                                            <span>{errors.profilePictureFile}</span>
+                                            <span>{errors.profilePicture}</span>
                                         </p>
                                     )}
                                     <p className="mt-1 text-sm text-gray-500">

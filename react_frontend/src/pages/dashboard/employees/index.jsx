@@ -1,99 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Users, Search } from 'lucide-react';
 import Tab from '../../../layout/Tab';
 import TabHeader from '../../../components/TabHeader';
 import EmployeeWFullCard from '../../../components/EmployeeWFullCard';
 import EmployeeSearchBar from '../../../components/EmployeeSearchbar';
-
-const fetchEmployees = async () => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve([
-                {
-                    _id: '1',
-                    epfNumber: 'EPF001',
-                    name: 'John Doe',
-                    address: '123 Main Street, Colombo 03',
-                    dateOfBirth: '1990-05-15T00:00:00Z',
-                    nicNumber: '901234567V',
-                    gender: 'Male',
-                    email: 'john.doe@company.com',
-                    department: {
-                        _id: 'dept1',
-                        name: 'Human Resources'
-                    },
-                    joinedDate: '2022-01-15T00:00:00Z',
-                    basicSalary: 75000,
-                    employmentType: 'Permanent',
-                    profilePicture: '',
-                    maritalStatus: 'Married',
-                    spouseName: 'Jane Doe',
-                    parents: [],
-                    children: [
-                        {
-                            name: 'Alice Doe',
-                            dateOfBirth: '2018-03-10T00:00:00Z',
-                            gender: 'Female',
-                            school: 'Royal College',
-                            grade: 'Grade 6'
-                        },
-                        {
-                            name: 'Bob Doe',
-                            dateOfBirth: '2020-08-22T00:00:00Z',
-                            gender: 'Male',
-                            school: 'Trinity College',
-                            grade: 'Grade 4'
-                        }
-                    ],
-                    contactNumber: '+94771234567',
-                    createdAt: '2022-01-15T10:30:00Z',
-                    updatedAt: '2024-07-20T14:45:00Z'
-                },
-                {
-                    _id: '2',
-                    epfNumber: 'EPF002',
-                    name: 'Sarah Silva',
-                    address: '456 Galle Road, Mount Lavinia',
-                    dateOfBirth: '1995-08-20T00:00:00Z',
-                    nicNumber: '955432167V',
-                    gender: 'Female',
-                    email: 'sarah.silva@company.com',
-                    department: {
-                        _id: 'dept2',
-                        name: 'Information Technology'
-                    },
-                    joinedDate: '2023-03-01T00:00:00Z',
-                    basicSalary: 85000,
-                    employmentType: 'Permanent',
-                    profilePicture: '',
-                    maritalStatus: 'Unmarried',
-                    spouseName: '',
-                    parents: [
-                        {
-                            name: 'David Silva',
-                            relationship: 'Father',
-                            contactNumber: '+94712345678'
-                        },
-                        {
-                            name: 'Mary Silva',
-                            relationship: 'Mother',
-                            contactNumber: '+94723456789'
-                        }
-                    ],
-                    children: [],
-                    contactNumber: '+94779876543',
-                    createdAt: '2023-03-01T09:15:00Z',
-                    updatedAt: '2024-07-22T11:30:00Z'
-                }
-            ]);
-        }, 0);
-    });
-};
+import { getEmployeesApi } from '../../../apis/employee.api';
 
 const EmployeesList = ({ currentPath }) => {
     const [employees, setEmployees] = useState([]);
     const [filteredEmployees, setFilteredEmployees] = useState([]);
     const [isUrlFiltered, setIsUrlFiltered] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -111,9 +30,18 @@ const EmployeesList = ({ currentPath }) => {
 
     useEffect(() => {
         const loadEmployees = async () => {
-            const data = await fetchEmployees();
-            setEmployees(data);
-            setFilteredEmployees(data); // Initialize filteredEmployees with loaded data
+            try {
+                setIsLoading(true);
+                setError(null);
+                const data = await getEmployeesApi({});
+                setEmployees(data.data);
+                setFilteredEmployees(data.data);
+            } catch (err) {
+                setError('Failed to load employees. Please try again.');
+                console.error('Error loading employees:', err);
+            } finally {
+                setIsLoading(false);
+            }
         };
         loadEmployees();
     }, []);
@@ -135,6 +63,72 @@ const EmployeesList = ({ currentPath }) => {
         }
     }, [location.search, employees]);
 
+    // Skeleton Loading Card Component
+    const SkeletonCard = () => (
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-4 animate-pulse">
+            {/* Card Header */}
+            <div className="bg-gradient-to-r from-gray-100 to-gray-200 px-6 py-4 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                        <div className="w-16 h-16 bg-gray-300 rounded-full"></div>
+                        <div>
+                            <div className="h-6 bg-gray-300 rounded w-48 mb-2"></div>
+                            <div className="flex space-x-4">
+                                <div className="h-4 bg-gray-300 rounded w-24"></div>
+                                <div className="h-4 bg-gray-300 rounded w-32"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <div className="h-6 bg-gray-300 rounded w-24 mb-1"></div>
+                        <div className="h-4 bg-gray-300 rounded w-16"></div>
+                    </div>
+                </div>
+            </div>
+            {/* Card Body */}
+            <div className="px-6 py-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="h-4 bg-gray-300 rounded w-full"></div>
+                    <div className="h-4 bg-gray-300 rounded w-full"></div>
+                    <div className="h-4 bg-gray-300 rounded w-full"></div>
+                    <div className="h-4 bg-gray-300 rounded w-full"></div>
+                </div>
+            </div>
+        </div>
+    );
+
+    // Error State Component
+    const ErrorState = () => (
+        <div className="flex flex-col items-center justify-center py-16 px-4">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <Users className="w-8 h-8 text-red-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to Load Employees</h3>
+            <p className="text-gray-500 mb-6 text-center max-w-md">{error}</p>
+            <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+            >
+                Retry
+            </button>
+        </div>
+    );
+
+    // Empty State Component
+    const EmptyState = () => (
+        <div className="flex flex-col items-center justify-center py-16 px-4">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <Search className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Employees Found</h3>
+            <p className="text-gray-500 text-center max-w-md">
+                {isUrlFiltered
+                    ? "The specified employee could not be found."
+                    : "No employees match your search criteria. Try adjusting your search terms."
+                }
+            </p>
+        </div>
+    );
 
     return (
         <Tab>
@@ -144,8 +138,8 @@ const EmployeesList = ({ currentPath }) => {
                 currentPath={currentPath}
             />
             <div>
-                {/* Show URL filter info if filtering by employee ID */}
-                {(() => {
+                {/* Show URL filter info if filtering by employee ID - only when not loading */}
+                {!isLoading && (() => {
                     const urlParams = new URLSearchParams(location.search);
                     const empId = urlParams.get('emp');
                     if (empId) {
@@ -178,20 +172,60 @@ const EmployeesList = ({ currentPath }) => {
                     return null;
                 })()}
 
-                <EmployeeSearchBar
-                    employees={employees}
-                    onSearchResults={handleSearchResults}
-                    onClearSearch={handleClearSearch}
-                    placeholder="Search employees..."
-                    disabled={isUrlFiltered}
-                />
+                {/* Search Bar - only show when not loading and no error */}
+                {!isLoading && !error && (
+                    <EmployeeSearchBar
+                        employees={employees}
+                        onSearchResults={handleSearchResults}
+                        onClearSearch={handleClearSearch}
+                        placeholder="Search employees..."
+                        disabled={isUrlFiltered}
+                    />
+                )}
 
-                {filteredEmployees.map(employee => (
-                    <div key={employee._id} className='mb-4'>
-                        <EmployeeWFullCard initialEmployee={employee} />
+                {/* Conditional rendering based on state */}
+                {isLoading ? (
+                    // Skeleton loading
+                    <div>
+                        {[...Array(5)].map((_, index) => (
+                            <SkeletonCard key={index} />
+                        ))}
                     </div>
-                ))}
+                ) : error ? (
+                    <ErrorState />
+                ) : filteredEmployees.length === 0 ? (
+                    <EmptyState />
+                ) : (
+                    // Employee cards - keeping the original structure
+                    filteredEmployees.map((employee, index) => (
+                        <div
+                            key={employee._id}
+                            className="mb-4"
+                            style={{
+                                animationDelay: `${index * 50}ms`,
+                                opacity: 0,
+                                animation: `fadeIn 0.3s ease ${index * 50}ms forwards`
+                            }}
+                        >
+                            <EmployeeWFullCard initialEmployee={employee} />
+                        </div>
+                    ))
+                )}
             </div>
+
+            {/* Add CSS animations */}
+            <style jsx>{`
+                @keyframes fadeIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(10px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+            `}</style>
         </Tab>
     );
 };

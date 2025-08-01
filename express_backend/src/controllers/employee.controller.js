@@ -10,6 +10,16 @@ import {
 export const createEmployeeController = async (req, res) => {
     try {
         const employeeData = { ...req.body };
+
+        // Parse stringified JSON fields
+        if (employeeData.parents) {
+            employeeData.parents = JSON.parse(employeeData.parents);
+        }
+
+        if (employeeData.children) {
+            employeeData.children = JSON.parse(employeeData.children);
+        }
+
         if (req.file) {
             employeeData.profilePicture = req.file.filename;
         }
@@ -17,15 +27,26 @@ export const createEmployeeController = async (req, res) => {
         const employee = await createEmployee(employeeData);
         res.status(201).json({ success: true, message: 'Employee created', data: employee });
     } catch (err) {
+        console.error('Create Employee Error:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 };
+
 
 export const updateEmployeeController = async (req, res) => {
     const { id } = req.params;
 
     try {
         const updatedData = { ...req.body };
+
+        if (updatedData.parents) {
+            updatedData.parents = JSON.parse(updatedData.parents);
+        }
+
+        if (updatedData.children) {
+            updatedData.children = JSON.parse(updatedData.children);
+        }
+
         if (req.file) {
             // Delete old picture
             const old = await getEmployeesByQuery({ _id: id });
@@ -35,16 +56,17 @@ export const updateEmployeeController = async (req, res) => {
                 fs.existsSync(filePath) && fs.unlinkSync(filePath);
             }
 
-            // Save new filename
             updatedData.profilePicture = req.file.filename;
         }
 
         const updated = await updateEmployee(id, updatedData);
         res.status(200).json({ success: true, message: 'Employee updated', data: updated });
     } catch (err) {
+        console.error('Update Employee Error:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 };
+
 
 export const deleteEmployeeController = async (req, res) => {
     const { id } = req.params;

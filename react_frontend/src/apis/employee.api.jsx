@@ -13,6 +13,8 @@ export const createEmployeeApi = async (data = {}) => {
         for (const key in data) {
             if (key === 'profilePicture' && data[key] instanceof File) {
                 formData.append('profilePicture', data[key]);
+            } else if (key === 'parents' || key === 'children') {
+                formData.append(key, JSON.stringify(data[key]));
             } else {
                 formData.append(key, data[key]);
             }
@@ -40,11 +42,26 @@ export const updateEmployeeApi = async (id, data = {}) => {
         const formData = new FormData();
 
         for (const key in data) {
-            if (key === 'profilePicture' && data[key] instanceof File) {
-                formData.append('profilePicture', data[key]);
+            if (key === 'profilePicture') {
+                if (data[key] instanceof File) {
+                    formData.append('profilePicture', data[key]); // new upload
+                } else if (typeof data[key] === 'string') {
+                    // Extract filename from URL
+                    const fileName = data[key].split('/').pop();
+                    formData.append('profilePicture', fileName);
+                }
+            } else if (key === 'parents' || key === 'children') {
+                formData.append(key, JSON.stringify(data[key]));
+            } else if (key === 'department') {
+                const departmentId = typeof data[key] === 'object' ? data[key]._id : data[key];
+                formData.append('department', departmentId);
             } else {
                 formData.append(key, data[key]);
             }
+        }
+
+        for (let [key, value] of formData.entries()) {
+            console.log(`${key}:`, value);
         }
 
         const res = await axios.put(`${API}/${id}`, formData, {
@@ -58,6 +75,7 @@ export const updateEmployeeApi = async (id, data = {}) => {
         throw err.response?.data || { message: err.message };
     }
 };
+
 
 /**
  * Delete an employee by ID

@@ -24,6 +24,9 @@ import {
     School,
     Plus
 } from 'lucide-react';
+import { deleteEmployeeApi, updateEmployeeApi } from '../apis/employee.api';
+import { fetchDepartmentsApi } from '../apis/department.api';
+import { createPortal } from 'react-dom';
 
 const EmployeeWFullCard = ({ initialEmployee }) => {
 
@@ -36,6 +39,7 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
     const [isDeleted, setIsDeleted] = useState(false);
     const [editingSections, setEditingSections] = useState({});
     const [editData, setEditData] = useState({});
+    const [departments, setDepartments] = useState([]);
 
     // Format date
     const formatDate = (dateString) => {
@@ -46,6 +50,20 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
             day: 'numeric'
         });
     };
+
+    React.useEffect(() => {
+        // Simulate API call to fetch departments
+        const fetchDepartments = async () => {
+            try {
+                // Replace with actual API endpoint
+                const response = await fetchDepartmentsApi();
+                setDepartments(response.data);
+            } catch (error) {
+                showNotification('error', 'Failed to fetch departments');
+            }
+        };
+        fetchDepartments();
+    }, []);
 
     // Calculate age
     const calculateAge = (dateOfBirth) => {
@@ -94,12 +112,13 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                     ...editData,
                     employment: {
                         epfNumber: employee.epfNumber,
-                        department: employee.department?.name || '',
+                        department: employee.department?._id || '',
                         joinedDate: employee.joinedDate ? employee.joinedDate.split('T')[0] : '',
                         basicSalary: employee.basicSalary,
                         employmentType: employee.employmentType
                     }
                 });
+
                 break;
             case 'family':
                 setEditData({
@@ -130,31 +149,54 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
     const saveSection = async (section) => {
         setIsLoading(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            const updatedEmployee = { ...employee };
-
+            // Flatten the data: extract only the current section's data
+            let updatePayload = {};
             switch (section) {
                 case 'personal':
-                    Object.assign(updatedEmployee, editData.personal);
+                    updatePayload = { ...editData.personal };
                     break;
                 case 'employment':
-                    Object.assign(updatedEmployee, editData.employment);
-                    if (editData.employment.department) {
-                        updatedEmployee.department = { name: editData.employment.department };
+                    updatePayload = { ...editData.employment };
+                    break;
+                case 'family':
+                    updatePayload = { ...editData.family };
+                    break;
+                case 'additional':
+                    updatePayload = { ...editData.additional };
+                    break;
+                default:
+                    break;
+            }
+
+            const res = await updateEmployeeApi(employee._id, updatePayload); // use employee._id
+
+            if (res?.success === true) {
+                showSuccess(`Employee updated`);
+            }
+
+            // Update the local employee state
+            const updatedEmployee = { ...employee };
+            switch (section) {
+                case 'personal':
+                    Object.assign(updatedEmployee, updatePayload);
+                    break;
+                case 'employment':
+                    Object.assign(updatedEmployee, updatePayload);
+                    // ✅ Better handling of department update
+                    if (updatePayload.department) {
+                        // Find the department name for display
+                        const selectedDept = departments.find(dept => dept._id === updatePayload.department);
+                        updatedEmployee.department = {
+                            _id: updatePayload.department,
+                            name: selectedDept?.name || 'Unknown Department'
+                        };
                     }
                     break;
                 case 'family':
-                    updatedEmployee.maritalStatus = editData.family.maritalStatus;
-                    updatedEmployee.spouseName = editData.family.spouseName;
-                    updatedEmployee.children = editData.family.children;
-                    updatedEmployee.parents = editData.family.parents;
+                    Object.assign(updatedEmployee, updatePayload);
                     break;
                 case 'additional':
-                    updatedEmployee.createdAt = editData.additional.createdAt;
-                    updatedEmployee.updatedAt = editData.additional.updatedAt;
-                    break;
-                default:
+                    Object.assign(updatedEmployee, updatePayload);
                     break;
             }
 
@@ -168,6 +210,7 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
             setIsLoading(false);
         }
     };
+
 
     // Add/remove child
     const addChild = () => {
@@ -252,12 +295,14 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
     const handleDeleteConfirm = async () => {
         setIsLoading(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            const res = await deleteEmployeeApi(employee._id);
             setIsDeleted(true);
             setShowDeleteModal(false);
-            showSuccess('Employee deleted successfully!');
+            if (res?.success == true) {
+                showSuccess('Employee deleted successfully');
+            }
         } catch (error) {
-            console.error('Error deleting employee:', error);
+            showSuccess(e.message || 'Error deleting employee');
         } finally {
             setIsLoading(false);
         }
@@ -267,8 +312,8 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
     const ModalBackdrop = ({ children, show, onClose }) => {
         if (!show) return null;
 
-        return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+        return createPortal(
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4 py-6">
                 <div
                     className="absolute inset-0 bg-black/50 transition-opacity duration-300"
                     onClick={onClose}
@@ -276,7 +321,8 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                 <div className="relative bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-100">
                     {children}
                 </div>
-            </div>
+            </div>,
+            document.body // This renders the modal directly to body, bypassing parent containers
         );
     };
 
@@ -319,7 +365,7 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
                             <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-md">
-                                {employee.profilePicture ? (
+                                {employee.profilePicture && !employee.profilePicture.endsWith('/null') ? (
                                     <img
                                         src={employee.profilePicture}
                                         alt={employee.name}
@@ -625,18 +671,32 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                                             ...editData,
                                             employment: { ...editData.employment, epfNumber: e.target.value }
                                         })}
+
                                         className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     />
-                                    <input
-                                        type="text"
-                                        placeholder="Department"
-                                        value={editData.employment?.department || ''}
-                                        onChange={(e) => setEditData({
-                                            ...editData,
-                                            employment: { ...editData.employment, department: e.target.value }
-                                        })}
+                                    <select
+                                        id="department"
+                                        name="department"
+                                        value={editData.employment?.department || ''}  // ✅ Correct reference
+                                        onChange={(e) =>
+                                            setEditData({
+                                                ...editData,
+                                                employment: {
+                                                    ...editData.employment,
+                                                    department: e.target.value   // ✅ Correct structure
+                                                }
+                                            })
+                                        }
                                         className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    />
+                                    >
+                                        <option value="">Select Department</option>
+                                        {departments.map((dept) => (
+                                            <option key={dept._id} value={dept._id}>
+                                                {dept.name}
+                                            </option>
+                                        ))}
+                                    </select>
+
                                     <input
                                         type="date"
                                         value={editData.employment?.joinedDate || ''}
@@ -995,6 +1055,7 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <input
                                         type="date"
+                                        readOnly
                                         value={editData.additional?.createdAt || ''}
                                         onChange={(e) =>
                                             setEditData({
@@ -1006,6 +1067,7 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                                     />
                                     <input
                                         type="date"
+                                        readOnly
                                         value={editData.additional?.updatedAt || ''}
                                         onChange={(e) =>
                                             setEditData({

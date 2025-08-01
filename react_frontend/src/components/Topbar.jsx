@@ -1,14 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, Bell, Search, User, ChevronDown, UserCircle, LogOut, Filter, X, Clock, Users, Building2, FileText, Settings, BarChart3 } from 'lucide-react';
+import { Menu, Bell, Search, User, ChevronDown, UserCircle, LogOut, Filter, X, Clock, Users, Building2, FileText, Settings, BarChart3, AlertCircle } from 'lucide-react';
 import { logoutApi } from '../apis/logout.api';
+import { getEmployeesApi } from '../apis/employee.api';
 
 const SearchModal = ({ isOpen, onClose }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedFilter, setSelectedFilter] = useState('all');
-    const [recentSearches, setRecentSearches] = useState(['John Doe', 'HR Department', 'EPF Entry 2024']);
+    const [recentSearches, setRecentSearches] = useState([]);
+    const [employees, setEmployees] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
     const searchInputRef = useRef(null);
+    const debounceRef = useRef(null);
 
-    // Mock data - replace with actual API calls
+    // Mock data for other search types - replace with actual API calls as needed
     const systemNavigation = [
         { title: 'Dashboard', url: '/dashboard', description: 'Main dashboard with overview and key metrics', keywords: ['dashboard', 'home', 'overview', 'main', 'metrics', 'summary'] },
         { title: 'Overview', url: '/dashboard#overview', description: 'Quick summary of system statistics and insights', keywords: ['overview', 'summary', 'stats', 'insights', 'quick view'] },
@@ -26,12 +31,6 @@ const SearchModal = ({ isOpen, onClose }) => {
         { title: 'Admins', url: '/admins', description: 'System administrators and their access permissions', keywords: ['admins', 'administrators', 'users', 'management', 'permissions', 'access', 'system'] },
         { title: 'New Admin', url: '/admins/add', description: 'Add new system administrator with access rights', keywords: ['add', 'new', 'create', 'admin', 'administrator', 'user', 'access', 'permissions'] },
         { title: 'EPF Configurations', url: '/settings/epf', description: 'Configure EPF rates, calculations, and system settings', keywords: ['settings', 'configuration', 'epf', 'setup', 'preferences', 'rates', 'calculations'] },
-    ];
-
-    const mockEmployees = [
-        { id: '1', name: 'John Doe', epfNumber: 'EPF001', department: 'IT', email: 'john@company.com' },
-        { id: '2', name: 'Jane Smith', epfNumber: 'EPF002', department: 'HR', email: 'jane@company.com' },
-        { id: '3', name: 'Mike Johnson', epfNumber: 'EPF003', department: 'Finance', email: 'mike@company.com' },
     ];
 
     const mockDepartments = [
@@ -54,6 +53,65 @@ const SearchModal = ({ isOpen, onClose }) => {
         { id: 'epf', label: 'EPF Records', icon: FileText },
     ];
 
+    // API call to fetch employees
+    const fetchEmployees = async (query) => {
+        if (!query || query.trim().length < 2) {
+            setEmployees([]);
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            const response = await getEmployeesApi({ search: query.trim() });
+            setEmployees(response.data || response || []);
+        } catch (err) {
+            console.error('Error fetching employees:', err);
+            setError('Failed to fetch employees');
+            setEmployees([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Load recent searches from memory on component mount
+    useEffect(() => {
+        // In a real application, you would use localStorage here:
+        const savedSearches = localStorage.getItem('recentSearches');
+        if (savedSearches) {
+            setRecentSearches(JSON.parse(savedSearches));
+        }
+    }, []);
+
+    // Save recent searches to memory whenever they change
+    const saveRecentSearches = (searches) => {
+        // In a real application, you would save to localStorage here:
+        localStorage.setItem('recentSearches', JSON.stringify(searches));
+    };
+
+    // Debounced search effect
+    useEffect(() => {
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
+        if (searchQuery && (selectedFilter === 'all' || selectedFilter === 'employees')) {
+            debounceRef.current = setTimeout(() => {
+                fetchEmployees(searchQuery);
+            }, 300); // 300ms debounce
+        } else {
+            setEmployees([]);
+            setLoading(false);
+        }
+
+        return () => {
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
+        };
+    }, [searchQuery, selectedFilter]);
+
     useEffect(() => {
         if (isOpen && searchInputRef.current) {
             searchInputRef.current.focus();
@@ -70,13 +128,6 @@ const SearchModal = ({ isOpen, onClose }) => {
                     item.title.toLowerCase().includes(lowerQuery) ||
                     item.description.toLowerCase().includes(lowerQuery) ||
                     item.keywords.some(keyword => keyword.toLowerCase().includes(lowerQuery))
-                );
-            case 'employees':
-                return mockEmployees.filter(emp =>
-                    emp.name.toLowerCase().includes(lowerQuery) ||
-                    emp.epfNumber.toLowerCase().includes(lowerQuery) ||
-                    emp.department.toLowerCase().includes(lowerQuery) ||
-                    emp.email.toLowerCase().includes(lowerQuery)
                 );
             case 'departments':
                 return mockDepartments.filter(dept =>
@@ -96,26 +147,63 @@ const SearchModal = ({ isOpen, onClose }) => {
     const getFilteredResults = () => {
         if (!searchQuery) return [];
 
+        let results = [];
+
         if (selectedFilter === 'all') {
-            return [
-                ...filterResults([], searchQuery, 'navigation').map(item => ({ ...item, type: 'navigation' })),
-                ...filterResults([], searchQuery, 'employees').map(item => ({ ...item, type: 'employees' })),
-                ...filterResults([], searchQuery, 'departments').map(item => ({ ...item, type: 'departments' })),
-                ...filterResults([], searchQuery, 'epf').map(item => ({ ...item, type: 'epf' })),
-            ];
+            // Navigation results
+            const navigationResults = filterResults([], searchQuery, 'navigation')
+                .map(item => ({ ...item, type: 'navigation' }));
+
+            // Employee results (from API)
+            const employeeResults = employees.map(emp => ({
+                ...emp,
+                type: 'employees',
+                // Ensure consistent field names
+                name: emp.name,
+                epfNumber: emp.epfNumber,
+                department: emp.department?.name || emp.department,
+                email: emp.email
+            }));
+
+            // Department results
+            const departmentResults = filterResults([], searchQuery, 'departments')
+                .map(item => ({ ...item, type: 'departments' }));
+
+            // EPF results
+            const epfResults = filterResults([], searchQuery, 'epf')
+                .map(item => ({ ...item, type: 'epf' }));
+
+            results = [...navigationResults, ...employeeResults, ...departmentResults, ...epfResults];
+        } else if (selectedFilter === 'employees') {
+            results = employees.map(emp => ({
+                ...emp,
+                type: 'employees',
+                name: emp.name,
+                epfNumber: emp.epfNumber,
+                department: emp.department?.name || emp.department,
+                email: emp.email
+            }));
+        } else {
+            results = filterResults([], searchQuery, selectedFilter)
+                .map(item => ({ ...item, type: selectedFilter }));
         }
 
-        return filterResults([], searchQuery, selectedFilter).map(item => ({ ...item, type: selectedFilter }));
+        return results;
     };
 
     const handleResultClick = (result) => {
         if (result.type === 'navigation' && result.url) {
             window.location.href = result.url;
+        } else if (result.type === 'employees') {
+            // Navigate to employee page with emp parameter
+            window.location.href = `/employees?emp=${result._id || result.id}`;
         }
 
         // Add to recent searches
-        if (!recentSearches.includes(result.title || result.name)) {
-            setRecentSearches(prev => [result.title || result.name, ...prev.slice(0, 4)]);
+        const searchTerm = result.title || result.name || result.employeeName;
+        if (searchTerm && !recentSearches.includes(searchTerm)) {
+            const updatedSearches = [searchTerm, ...recentSearches.slice(0, 4)];
+            saveRecentSearches(updatedSearches);
         }
 
         onClose();
@@ -131,6 +219,14 @@ const SearchModal = ({ isOpen, onClose }) => {
         }
     };
 
+    const handleRecentSearchClick = (search) => {
+        setSearchQuery(search);
+        // Optionally auto-search when clicking recent search
+        if (selectedFilter === 'all' || selectedFilter === 'employees') {
+            fetchEmployees(search);
+        }
+    };
+
     if (!isOpen) return null;
 
     const results = getFilteredResults();
@@ -140,7 +236,7 @@ const SearchModal = ({ isOpen, onClose }) => {
             {/* Backdrop */}
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
-            {/* Modal Container - No background */}
+            {/* Modal Container */}
             <div className="relative w-full max-w-2xl mx-4">
                 {/* Glassmorphism Search Container */}
                 <div className="backdrop-blur-xl bg-gray-900/80 border border-gray-700/50 rounded-2xl shadow-2xl">
@@ -154,9 +250,14 @@ const SearchModal = ({ isOpen, onClose }) => {
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Search employees, departments, EPF records, or navigate..."
+                                    placeholder="Search employees by name, EPF number, email, contact, address, NIC..."
                                     className="w-full pl-12 pr-4 py-4 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 backdrop-blur-sm"
                                 />
+                                {loading && (
+                                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                                    </div>
+                                )}
                             </div>
                             <button
                                 onClick={onClose}
@@ -193,13 +294,24 @@ const SearchModal = ({ isOpen, onClose }) => {
                     {/* Results */}
                     <div className="max-h-96 overflow-y-auto">
                         {searchQuery ? (
-                            results.length > 0 ? (
+                            error ? (
+                                <div className="p-8 text-center">
+                                    <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+                                    <p className="text-red-300">{error}</p>
+                                    <p className="text-gray-400 text-sm mt-1">Please try again</p>
+                                </div>
+                            ) : loading ? (
+                                <div className="p-8 text-center">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-3"></div>
+                                    <p className="text-gray-300">Searching...</p>
+                                </div>
+                            ) : results.length > 0 ? (
                                 <div className="p-2">
                                     {results.map((result, index) => {
                                         const IconComponent = getResultIcon(result.type);
                                         return (
                                             <button
-                                                key={index}
+                                                key={`${result.type}-${result._id || result.id || index}`}
                                                 onClick={() => handleResultClick(result)}
                                                 className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-700/50 transition-all duration-200 text-left group"
                                             >
@@ -212,7 +324,13 @@ const SearchModal = ({ isOpen, onClose }) => {
                                                     </p>
                                                     <p className="text-gray-400 text-sm truncate">
                                                         {result.type === 'navigation' && result.description}
-                                                        {result.type === 'employees' && `${result.department} • ${result.epfNumber}`}
+                                                        {result.type === 'employees' && (
+                                                            <>
+                                                                {result.department} • {result.epfNumber}
+                                                                {result.email && ` • ${result.email}`}
+                                                                {result.contactNumber && ` • ${result.contactNumber}`}
+                                                            </>
+                                                        )}
                                                         {result.type === 'departments' && result.description}
                                                         {result.type === 'epf' && `${result.expense} • ${result.year}`}
                                                     </p>
@@ -242,7 +360,7 @@ const SearchModal = ({ isOpen, onClose }) => {
                                 {recentSearches.map((search, index) => (
                                     <button
                                         key={index}
-                                        onClick={() => setSearchQuery(search)}
+                                        onClick={() => handleRecentSearchClick(search)}
                                         className="w-full flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200 text-left"
                                     >
                                         <Clock className="w-4 h-4 text-gray-400" />
@@ -257,7 +375,7 @@ const SearchModal = ({ isOpen, onClose }) => {
                     <div className="p-4 border-t border-gray-700/30">
                         <div className="flex items-center justify-between text-xs text-gray-400">
                             <span>Press Esc to close</span>
-                            <span>Use ↑↓ to navigate</span>
+                            <span>Use ↑↓ to navigate • Enter to select</span>
                         </div>
                     </div>
                 </div>
