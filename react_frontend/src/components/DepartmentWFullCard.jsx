@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { deleteDepartment, updateDepartment } from '../apis/department.api';
 
-const DepartmentWFullCard = ({ initialDepartment }) => {
+const DepartmentWFullCard = ({ initialDepartment, employeeCount = 0 }) => {
     const [department, setDepartment] = useState(initialDepartment);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -172,22 +172,31 @@ const DepartmentWFullCard = ({ initialDepartment }) => {
                             </div>
                         </div>
 
-                        {/* Action Buttons */}
-                        <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            <button
-                                onClick={openEditModal}
-                                className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-lg transition-all duration-200 transform hover:scale-105"
-                                title="Edit Department"
-                            >
-                                <Edit3 className="w-5 h-5" />
-                            </button>
-                            <button
-                                onClick={() => setShowDeleteModal(true)}
-                                className="p-2 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-all duration-200 transform hover:scale-105"
-                                title="Delete Department"
-                            >
-                                <Trash2 className="w-5 h-5" />
-                            </button>
+                        {/* Employee Count Badge & Action Buttons */}
+                        <div className="flex items-center space-x-3">
+                            {/* Employee Count Badge */}
+                            <div className="flex items-center bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full text-sm font-medium">
+                                <Users className="w-4 h-4 mr-1.5" />
+                                <span>{employeeCount} {employeeCount === 1 ? 'Employee' : 'Employees'}</span>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                <button
+                                    onClick={openEditModal}
+                                    className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-lg transition-all duration-200 transform hover:scale-105"
+                                    title="Edit Department"
+                                >
+                                    <Edit3 className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={() => setShowDeleteModal(true)}
+                                    className="p-2 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-all duration-200 transform hover:scale-105"
+                                    title="Delete Department"
+                                >
+                                    <Trash2 className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -209,10 +218,15 @@ const DepartmentWFullCard = ({ initialDepartment }) => {
                         </div>
 
                         {/* Stats */}
-                        <div className="flex items-center space-x-6 pt-2 border-t border-gray-100">
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                             <div className="flex items-center space-x-2 text-sm text-gray-500">
                                 <Users className="w-4 h-4" />
-                                <span>0 Employees</span>
+                                <span>
+                                    {employeeCount > 0
+                                        ? `${employeeCount} active ${employeeCount === 1 ? 'employee' : 'employees'}`
+                                        : 'No employees assigned'
+                                    }
+                                </span>
                             </div>
                             <div className="text-sm text-gray-400">
                                 Updated {formatDate(department.updatedAt)}
@@ -310,6 +324,11 @@ const DepartmentWFullCard = ({ initialDepartment }) => {
                             Are you sure you want to delete <strong>"{department.name}"</strong>?
                             This will permanently remove the department and all associated data.
                         </p>
+                        {employeeCount > 0 && (
+                            <p className="text-red-800 mt-2 font-medium">
+                                Warning: This department has {employeeCount} active {employeeCount === 1 ? 'employee' : 'employees'}.
+                            </p>
+                        )}
                     </div>
 
                     <div className="flex space-x-3">
