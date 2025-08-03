@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Shield, Save, ArrowLeft, AlertCircle, CheckCircle, X, Mail, Badge } from 'lucide-react';
+import { addAdmin } from '../apis/admin.api';
 
 const AddAdminForm = ({ onBack }) => {
     const [formData, setFormData] = useState({
@@ -154,10 +155,6 @@ const AddAdminForm = ({ onBack }) => {
     const handleSubmit = (e) => {
         if (e) e.preventDefault();
 
-        console.log('Submit clicked, form data:', formData);
-        console.log('Current errors:', errors);
-        console.log('Is form valid:', isFormValid);
-
         // Check if form is valid before showing modal
         if (!isFormValid) {
             console.log('Form is not valid, validating...');
@@ -180,17 +177,13 @@ const AddAdminForm = ({ onBack }) => {
                 epfNo: parseInt(formData.epfNo)
             });
 
+            const dataToSub = {
+                email: formData.email.trim().toLowerCase(),
+                epfNo: parseInt(formData.epfNo)
+            }
+
             // Replace with your actual API endpoint
-            const response = await fetch('/api/admins', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email: formData.email.trim().toLowerCase(),
-                    epfNo: parseInt(formData.epfNo)
-                })
-            });
+            const response = await addAdmin(dataToSub)
 
             const data = await response.json();
 
@@ -345,8 +338,8 @@ const AddAdminForm = ({ onBack }) => {
                                 />
                                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                                     <span className={`text-xs font-medium px-2 py-1 rounded ${formData.epfNo.length === 4
-                                            ? 'bg-green-100 text-green-700'
-                                            : 'bg-gray-100 text-gray-500'
+                                        ? 'bg-green-100 text-green-700'
+                                        : 'bg-gray-100 text-gray-500'
                                         }`}>
                                         {formData.epfNo.length}/4
                                     </span>

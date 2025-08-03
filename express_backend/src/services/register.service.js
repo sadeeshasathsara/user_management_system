@@ -27,3 +27,12 @@ export const registerAdmin = async ({ email, password, epfNo }) => {
 
     return newAdmin;
 };
+
+export const getAdmins = async () => {
+    try {
+        const admins = await Admin.find();
+        return admins;
+    } catch (error) {
+        throw new Error('Error fetching admins: ' + error.message);
+    }
+};

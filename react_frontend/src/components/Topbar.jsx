@@ -3,6 +3,7 @@ import { Menu, Bell, Search, User, ChevronDown, UserCircle, LogOut, Filter, X, C
 import { logoutApi } from '../apis/logout.api';
 import { getEmployeesApi } from '../apis/employee.api';
 import { fetchDepartmentsApi } from '../apis/department.api';
+import { useUserStore } from '../tools/user.zustand';
 
 const SearchModal = ({ isOpen, onClose }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -34,7 +35,6 @@ const SearchModal = ({ isOpen, onClose }) => {
         { title: 'New Admin', url: '/admins/add', description: 'Add new system administrator with access rights', keywords: ['add', 'new', 'create', 'admin', 'administrator', 'user', 'access', 'permissions'] },
         { title: 'EPF Configurations', url: '/settings/epf', description: 'Configure EPF rates, calculations, and system settings', keywords: ['settings', 'configuration', 'epf', 'setup', 'preferences', 'rates', 'calculations'] },
     ];
-
 
 
     const mockEpfRecords = [
@@ -280,6 +280,8 @@ const SearchModal = ({ isOpen, onClose }) => {
         }
     };
 
+    const { user, setUser } = useUserStore();
+
     if (!isOpen) return null;
 
     const results = getFilteredResults();
@@ -443,6 +445,8 @@ const Topbar = ({ setSidebarOpen, currentPage }) => {
     const dropdownRef = useRef(null);
     const profileButtonRef = useRef(null);
 
+    const { user } = useUserStore();
+
     const getPageTitle = (path) => {
         const titles = {
             'dashboard': 'Dashboard Overview',
@@ -570,7 +574,7 @@ const Topbar = ({ setSidebarOpen, currentPage }) => {
                                 <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-sm">
                                     <User className="w-4 h-4 text-white" />
                                 </div>
-                                <span className="hidden md:block text-sm font-medium text-gray-700">Admin User</span>
+                                <span className="hidden md:block text-sm font-medium text-gray-700">{user?.name || `Admin User`}</span>
                                 <ChevronDown
                                     className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isProfileDropdownOpen ? 'rotate-180' : ''
                                         }`}
@@ -585,8 +589,8 @@ const Topbar = ({ setSidebarOpen, currentPage }) => {
                                 >
                                     {/* Profile Header */}
                                     <div className="px-4 py-3 border-b border-gray-100">
-                                        <p className="text-sm font-medium text-gray-900">Admin User</p>
-                                        <p className="text-xs text-gray-500">admin@company.com</p>
+                                        <p className="text-sm font-medium text-gray-900">{user?.name || `Admin User`}</p>
+                                        <p className="text-xs text-gray-500">{user?.email || `admin@company.com`}</p>
                                     </div>
 
                                     {/* Menu Items */}

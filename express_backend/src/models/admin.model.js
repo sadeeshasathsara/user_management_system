@@ -13,6 +13,10 @@ const adminSchema = new mongoose.Schema({
     epfNo: {
         type: Number,
         required: true
+    },
+    isActive: {
+        type: Boolean,
+        default: true
     }
 }, { timestamps: true });
 

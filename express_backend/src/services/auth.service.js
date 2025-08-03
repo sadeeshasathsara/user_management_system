@@ -31,3 +31,38 @@ export const validateUser = async (email = '', epf = '', password) => {
         return null;
     }
 };
+
+export const tougleAccountStatus = async (accId) => {
+    try {
+        const admin = await Admin.findById(accId);
+        if (!admin) {
+            throw new Error('Account not found');
+        }
+        if (admin.isActive) {
+            admin.isActive = false;
+        } else {
+            admin.isActive = true;
+        }
+
+        await admin.save();
+
+        return {
+            success: true,
+            data: accId
+        }
+    } catch (e) {
+        throw new Error(e.message)
+    }
+}
+
+export const deleteAccount = async (accId) => {
+    try {
+        const admin = await Admin.findByIdAndDelete(accId);
+        return {
+            success: true,
+            data: accId
+        }
+    } catch (e) {
+        throw new Error(e.message)
+    }
+}

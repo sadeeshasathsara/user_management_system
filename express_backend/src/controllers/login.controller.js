@@ -19,6 +19,10 @@ export const loginController = async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
+        if (admin.isActive == false) {
+            return res.status(401).json({ message: 'Account disabled.' })
+        }
+
         // Set expiry based on rememberMe
         const expiresIn = rememberMe ? '7d' : '1d';
         const maxAge = rememberMe ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000; // ms

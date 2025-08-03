@@ -19,6 +19,7 @@ import {
     Power,
     PowerOff
 } from 'lucide-react';
+import { deleteAccount, tougleAccountStatus } from '../apis/admin.api';
 
 const AdminWFullCard = ({ adminRecords: initialAdminRecords }) => {
     // Mock admin records if none provided
@@ -131,7 +132,7 @@ const AdminWFullCard = ({ adminRecords: initialAdminRecords }) => {
     const handleToggleStatus = async () => {
         setIsLoading(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            const res = await tougleAccountStatus(selectedRecord._id)
 
             const updatedRecords = adminRecords.map(record =>
                 record._id === selectedRecord._id
@@ -159,7 +160,7 @@ const AdminWFullCard = ({ adminRecords: initialAdminRecords }) => {
     const handleDeleteConfirm = async () => {
         setIsLoading(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            await deleteAccount(selectedRecord._id)
 
             const updatedRecords = adminRecords.filter(record => record._id !== selectedRecord._id);
             setAdminRecords(updatedRecords);
