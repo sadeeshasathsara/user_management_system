@@ -16,85 +16,13 @@ import {
     Briefcase,
     Search,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Target,
+    CreditCard,
+    BarChart3,
+    Activity
 } from 'lucide-react';
-
-const fetchEpfRecords = async () => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve([
-                {
-                    _id: '1',
-                    user: {
-                        _id: 'user1',
-                        epfNumber: 'EPF001234',
-                        name: 'John Doe',
-                        email: 'john.doe@company.com',
-                        department: { name: 'Human Resources' },
-                        employmentType: 'Permanent',
-                        basicSalary: 75000
-                    },
-                    expense: 18500,
-                    year: new Date('2024-01-01'),
-                    maxEpf: 25000,
-                    createdAt: '2024-01-15T10:30:00Z',
-                    updatedAt: '2024-07-20T14:45:00Z'
-                },
-                {
-                    _id: '2',
-                    user: {
-                        _id: 'user2',
-                        epfNumber: 'EPF005678',
-                        name: 'Jane Smith',
-                        email: 'jane.smith@company.com',
-                        department: { name: 'Finance' },
-                        employmentType: 'Permanent',
-                        basicSalary: 85000
-                    },
-                    expense: 22000,
-                    year: new Date('2024-01-01'),
-                    maxEpf: 25000,
-                    createdAt: '2024-02-10T09:15:00Z',
-                    updatedAt: '2024-07-25T16:30:00Z'
-                },
-                {
-                    _id: '3',
-                    user: {
-                        _id: 'user3',
-                        epfNumber: 'EPF009876',
-                        name: 'Mike Johnson',
-                        email: 'mike.johnson@company.com',
-                        department: { name: 'IT' },
-                        employmentType: 'Contract',
-                        basicSalary: 65000
-                    },
-                    expense: 15750,
-                    year: new Date('2023-01-01'),
-                    maxEpf: 25000,
-                    createdAt: '2023-03-05T11:20:00Z',
-                    updatedAt: '2024-06-15T10:45:00Z'
-                },
-                {
-                    _id: '4',
-                    user: {
-                        _id: 'user4',
-                        epfNumber: 'EPF001234',
-                        name: 'John Doe',
-                        email: 'john.doe@company.com',
-                        department: { name: 'Human Resources' },
-                        employmentType: 'Permanent',
-                        basicSalary: 75000
-                    },
-                    expense: 20000,
-                    year: new Date('2023-01-01'),
-                    maxEpf: 25000,
-                    createdAt: '2023-01-15T10:30:00Z',
-                    updatedAt: '2024-05-10T14:45:00Z'
-                }
-            ]);
-        }, 0);
-    });
-};
+import { deleteEmployeeEpf, getMaxEpf } from '../apis/epf.api';
 
 const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
     const [allEpfRecords, setAllEpfRecords] = useState([]);
@@ -108,7 +36,6 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
     const [successMessage, setSuccessMessage] = useState('');
     const [selectedRecord, setSelectedRecord] = useState(null);
     const [editData, setEditData] = useState({
-        expense: 0,
         year: new Date().getFullYear()
     });
     const [isLoading, setIsLoading] = useState(false);
@@ -116,25 +43,23 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
     const location = useLocation();
     const navigate = useNavigate();
 
-    // Fetch EPF records on component mount
+    // Set EPF records on component mount
     useEffect(() => {
-        const loadEpfRecords = async () => {
-            if (initialEpfRecords) {
-                setAllEpfRecords(initialEpfRecords);
-                setFilteredEpfRecords(initialEpfRecords);
-            } else {
-                const data = await fetchEpfRecords();
-                setAllEpfRecords(data);
-                setFilteredEpfRecords(data);
-            }
-        };
-        loadEpfRecords();
+        if (initialEpfRecords) {
+            // Handle nested data structure
+            const records = Array.isArray(initialEpfRecords) ? initialEpfRecords :
+                initialEpfRecords.data?.data || initialEpfRecords.data || [];
+            setAllEpfRecords(records);
+            setFilteredEpfRecords(records);
+        } else {
+            setAllEpfRecords([]);
+            setFilteredEpfRecords([]);
+        }
     }, [initialEpfRecords]);
 
     const handleClearFilters = () => {
         const params = new URLSearchParams(location.search);
         params.delete('id');
-
         const newSearch = params.toString();
         navigate({
             pathname: location.pathname,
@@ -149,14 +74,10 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
         const urlParams = new URLSearchParams(location.search);
         const id = urlParams.get('id');
 
-        console.log('URL id:', id);
-        console.log('User IDs:', allEpfRecords.map(r => r.user._id));
-
         if (id) {
             const filteredRecords = allEpfRecords.filter(record =>
                 String(record._id).trim() === String(id).trim()
             );
-            console.log('Filtered:', filteredRecords);
             setFilteredEpfRecords(filteredRecords);
             setIsUrlFiltered(true);
         } else {
@@ -165,13 +86,9 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
         }
     }, [location.search, allEpfRecords]);
 
-
-
-    // Handle search filtering (only when not URL filtered)
+    // Handle search filtering
     const performSearch = () => {
-        if (isUrlFiltered) {
-            return; // Don't search when URL filtering is active
-        }
+        if (isUrlFiltered) return;
 
         if (!searchTerm.trim()) {
             setFilteredEpfRecords(allEpfRecords);
@@ -179,28 +96,59 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
         }
 
         const filtered = allEpfRecords.filter(record =>
-            record.user.epfNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            record.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            record.user.department.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            record.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            record.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             new Date(record.year).getFullYear().toString().includes(searchTerm)
         );
         setFilteredEpfRecords(filtered);
     };
 
-    // Effect to trigger search when search term changes
     useEffect(() => {
         if (isUrlFiltered) return;
-
         const timeoutId = setTimeout(() => {
             performSearch();
-        }, 300); // Debounce search
-
+        }, 300);
         return () => clearTimeout(timeoutId);
     }, [searchTerm, allEpfRecords, isUrlFiltered]);
 
+    // Calculate total expenses for a record
+    const calculateTotalExpenses = (record) => {
+        return record.expense || 0;
+    };
+
+    // Calculate range expenses total
+    const calculateRangeExpensesTotal = (record) => {
+        if (!record.rangeExpenses) return 0;
+        return record.rangeExpenses.reduce((total, range) => total + (range.expense || 0), 0);
+    };
+
+    // Calculate regular expenses total
+    const calculateRegularExpensesTotal = (record) => {
+        return record.regularExpenses?.expense || 0;
+    };
+
+    const [maxEpf, setMaxEpf] = useState(null);
+    useEffect(() => {
+        const fetchMaxEpf = async () => {
+            try {
+                const response = await getMaxEpf();
+                if (response.success) {
+                    setMaxEpf(response.data.maxEpf);
+                }
+            } catch (error) {
+                console.error("Error fetching max EPF:", error);
+            }
+        };
+        fetchMaxEpf();
+
+        console.log(maxEpf);
+
+    }, []);
+
     // Calculate EPF usage percentage
-    const calculateUsagePercentage = (expense, maxEpf) => {
-        return Math.min((expense / maxEpf) * 100, 100);
+    const calculateUsagePercentage = (record) => {
+        const totalExpenses = calculateTotalExpenses(record);
+        return Math.min((totalExpenses / maxEpf) * 100, 100);
     };
 
     // Format currency
@@ -243,18 +191,15 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
         setIsLoading(true);
         try {
             await new Promise(resolve => setTimeout(resolve, 1500));
-
             const updatedRecords = allEpfRecords.map(record =>
                 record._id === selectedRecord._id
                     ? {
                         ...record,
-                        expense: parseFloat(editData.expense),
-                        year: new Date(`${editData.year}-01-01`),
+                        year: new Date(`${editData.year}-01-01`).toISOString(),
                         updatedAt: new Date().toISOString()
                     }
                     : record
             );
-
             setAllEpfRecords(updatedRecords);
             setShowEditModal(false);
             setSelectedRecord(null);
@@ -270,8 +215,7 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
     const handleDeleteConfirm = async () => {
         setIsLoading(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
+            await deleteEmployeeEpf(selectedRecord._id);
             const updatedRecords = allEpfRecords.filter(record => record._id !== selectedRecord._id);
             setAllEpfRecords(updatedRecords);
             setShowDeleteModal(false);
@@ -289,7 +233,6 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
     const openEditModal = (record) => {
         setSelectedRecord(record);
         setEditData({
-            expense: record.expense,
             year: new Date(record.year).getFullYear()
         });
         setShowEditModal(true);
@@ -301,10 +244,49 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
         setShowDeleteModal(true);
     };
 
+    // Progress bar component
+    const ProgressBar = ({ percentage, amount, maxAmount, size = "md" }) => {
+        const getColorClass = (percent) => {
+            if (percent >= 90) return 'from-red-500 to-red-600';
+            if (percent >= 75) return 'from-yellow-500 to-orange-500';
+            return 'from-green-500 to-emerald-600';
+        };
+
+        const getTextColor = (percent) => {
+            if (percent >= 90) return 'text-red-600';
+            if (percent >= 75) return 'text-orange-600';
+            return 'text-green-600';
+        };
+
+        const sizeClasses = {
+            sm: 'h-2',
+            md: 'h-3',
+            lg: 'h-4'
+        };
+
+        return (
+            <div className="w-full">
+                <div className={`w-full bg-gray-200/80 rounded-full ${sizeClasses[size]} shadow-inner overflow-hidden`}>
+                    <div
+                        className={`${sizeClasses[size]} rounded-full transition-all duration-700 ease-out shadow-sm bg-gradient-to-r ${getColorClass(percentage)}`}
+                        style={{ width: `${Math.min(percentage, 100)}%` }}
+                    />
+                </div>
+                <div className="flex justify-between items-center mt-1 text-xs">
+                    <span className={`font-semibold ${getTextColor(percentage)}`}>
+                        {percentage.toFixed(1)}%
+                    </span>
+                    <span className="text-gray-600">
+                        {formatCurrency(amount)} / {formatCurrency(maxAmount)}
+                    </span>
+                </div>
+            </div>
+        );
+    };
+
     // Modal backdrop component
     const ModalBackdrop = ({ children, show, onClose }) => {
         if (!show) return null;
-
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
                 <div
@@ -321,7 +303,6 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
     // Success notification
     const SuccessNotification = () => {
         if (!showSuccessMessage) return null;
-
         return (
             <div className="fixed top-4 right-4 z-60 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg shadow-lg flex items-center space-x-2 transform transition-all duration-300">
                 <CheckCircle className="w-5 h-5" />
@@ -332,340 +313,393 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
 
     return (
         <>
-            <SuccessNotification />
+            {maxEpf && (
+                <>
+                    <SuccessNotification />
 
-            <div className="space-y-4">
-                {/* Search Bar */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <input
-                            type="text"
-                            placeholder="Search by EPF number, employee name, department, or year..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 outline-none"
-                        />
-                    </div>
-                    {searchTerm && (
-                        <p className="text-sm text-gray-600 mt-2">
-                            Found {filteredEpfRecords.length} record{filteredEpfRecords.length !== 1 ? 's' : ''}
-                        </p>
-                    )}
-                </div>
+                    <div className="space-y-4">
+                        {/* Search Bar */}
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                <input
+                                    type="text"
+                                    placeholder="Search by employee name, email, or year..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 outline-none"
+                                />
+                            </div>
+                            {searchTerm && (
+                                <p className="text-sm text-gray-600 mt-2">
+                                    Found {filteredEpfRecords.length} record{filteredEpfRecords.length !== 1 ? 's' : ''}
+                                </p>
+                            )}
+                        </div>
 
-                <div className='w-full text-right'>
-                    <p onClick={handleClearFilters} className='mr-1 text-blue-600 cursor-pointer'>Clear Filters</p>
-                </div>
+                        <div className='w-full text-right'>
+                            <p onClick={handleClearFilters} className='mr-1 text-blue-600 cursor-pointer hover:text-blue-800 transition-colors'>Clear Filters</p>
+                        </div>
 
-                {/* EPF Records */}
-                {filteredEpfRecords.length === 0 ? (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-                        <Wallet className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-600">No EPF records found matching your search.</p>
-                    </div>
-                ) : (
-                    filteredEpfRecords.map((record) => {
-                        const usagePercentage = calculateUsagePercentage(record.expense, record.maxEpf);
-                        const isExpanded = expandedCard === record._id;
-                        const remainingAmount = Math.max(record.maxEpf - record.expense, 0);
+                        {/* EPF Records */}
+                        {filteredEpfRecords.length === 0 ? (
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+                                <Wallet className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                <p className="text-gray-600">No EPF records found matching your search.</p>
+                            </div>
+                        ) : (
+                            filteredEpfRecords.map((record) => {
+                                const totalExpenses = calculateTotalExpenses(record);
+                                const rangeExpensesTotal = calculateRangeExpensesTotal(record);
+                                const regularExpensesTotal = calculateRegularExpensesTotal(record);
+                                const usagePercentage = calculateUsagePercentage(record);
+                                const isExpanded = expandedCard === record._id;
+                                const remainingAmount = Math.max(maxEpf - totalExpenses, 0);
 
-                        return (
-                            <div
-                                key={record._id}
-                                className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-200 overflow-hidden"
-                            >
-                                {/* Clickable Header */}
-                                <div
-                                    className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-100 cursor-pointer hover:from-blue-100 hover:to-indigo-100 hover:shadow-md transition-all duration-200 group"
-                                    onClick={() => toggleCard(record._id)}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center space-x-4 flex-1">
-                                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow duration-200">
-                                                <Wallet className="w-5 h-5 text-white" />
-                                            </div>
-                                            <div className="flex items-center justify-between flex-1">
-                                                <div className="w-32 min-w-32">
-                                                    <p className="text-xs text-gray-500 uppercase tracking-wide">EPF Number</p>
-                                                    <p className="font-semibold text-gray-900 truncate">{record.user.epfNumber}</p>
-                                                </div>
-                                                <div className="w-20 min-w-20 text-center">
-                                                    <p className="text-xs text-gray-500 uppercase tracking-wide">Year</p>
-                                                    <p className="font-semibold text-gray-900">{new Date(record.year).getFullYear()}</p>
-                                                </div>
-                                                <div className="w-48 min-w-48">
-                                                    <p className="text-xs text-gray-500 uppercase tracking-wide">Employee</p>
-                                                    <p className="font-semibold text-gray-900 truncate">{record.user.name}</p>
-                                                </div>
-                                                <div className="w-24 min-w-24 text-center">
-                                                    <p className="text-xs text-gray-500 uppercase tracking-wide">EPF Usage</p>
-                                                    <p className={`font-semibold ${usagePercentage >= 90 ? 'text-red-600' :
-                                                        usagePercentage >= 75 ? 'text-yellow-600' :
-                                                            'text-green-600'
-                                                        }`}>
-                                                        {usagePercentage.toFixed(0)}%
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center space-x-2 ml-4">
-                                            {isExpanded && (
-                                                <div className="flex items-center space-x-2 mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            openEditModal(record);
-                                                        }}
-                                                        className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded-lg transition-all duration-200 transform hover:scale-105"
-                                                        title="Edit EPF Record"
-                                                    >
-                                                        <Edit3 className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            openDeleteModal(record);
-                                                        }}
-                                                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-all duration-200 transform hover:scale-105"
-                                                        title="Delete EPF Record"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            )}
-                                            <div className="group-hover:text-blue-600 transition-colors duration-200">
-                                                {isExpanded ? (
-                                                    <ChevronUp className="w-5 h-5" />
-                                                ) : (
-                                                    <ChevronDown className="w-5 h-5" />
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Expandable Content */}
-                                {isExpanded && (
-                                    <div className="bg-gradient-to-br from-blue-25 via-slate-50 to-indigo-25 px-6 py-6 animate-in slide-in-from-top duration-300 border-t border-blue-100/50">
-                                        <div className="space-y-6">
-                                            {/* Employee Information */}
-                                            <div className="flex items-start space-x-3 bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-blue-100/30 shadow-sm hover:shadow-md transition-all duration-200">
-                                                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
-                                                    <User className="w-4 h-4 text-white" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-blue-800 mb-2">Employee Details</p>
-                                                    <div className="space-y-2">
-                                                        <p className="text-gray-900 font-medium text-base">{record.user.name}</p>
-                                                        <p className="text-sm text-gray-600">{record.user.email}</p>
-                                                        <div className="flex items-center space-x-4 text-sm text-gray-500">
-                                                            <div className="flex items-center space-x-1">
-                                                                <Building2 className="w-3 h-3" />
-                                                                <span>{record.user.department.name}</span>
-                                                            </div>
-                                                            <div className="flex items-center space-x-1">
-                                                                <Briefcase className="w-3 h-3" />
-                                                                <span>{record.user.employmentType}</span>
-                                                            </div>
-                                                        </div>
+                                return (
+                                    <div
+                                        key={record._id}
+                                        className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 border border-gray-200 overflow-hidden"
+                                    >
+                                        {/* Clickable Header */}
+                                        <div
+                                            className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-5 border-b border-gray-100 cursor-pointer hover:from-blue-100 hover:to-indigo-100 hover:shadow-md transition-all duration-200 group"
+                                            onClick={() => toggleCard(record._id)}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center space-x-4 flex-1">
+                                                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-200">
+                                                        <Wallet className="w-6 h-6 text-white" />
                                                     </div>
-                                                </div>
-                                            </div>
-
-                                            {/* EPF Usage Progress */}
-                                            <div className="flex items-start space-x-3 bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-green-100/30 shadow-sm hover:shadow-md transition-all duration-200">
-                                                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
-                                                    <TrendingUp className="w-4 h-4 text-white" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-green-800 mb-3">EPF Usage</p>
-                                                    <div className="space-y-3">
-                                                        <div className="flex items-center justify-between text-sm">
-                                                            <span className="text-gray-700 font-medium">Used: {formatCurrency(record.expense)}</span>
-                                                            <span className="text-gray-700 font-medium">Limit: {formatCurrency(record.maxEpf)}</span>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <div>
+                                                                <h3 className="font-bold text-lg text-gray-900">{record.user?.name || 'N/A'}</h3>
+                                                                <p className="text-sm text-gray-600">{record.user?.email || 'N/A'}</p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="text-xs text-gray-500 uppercase tracking-wide">Year</p>
+                                                                <p className="font-bold text-lg text-gray-900">{new Date(record.year).getFullYear()}</p>
+                                                            </div>
                                                         </div>
-                                                        <div className="w-full bg-gray-200/80 rounded-full h-3 shadow-inner">
-                                                            <div
-                                                                className={`h-3 rounded-full transition-all duration-500 shadow-sm ${usagePercentage >= 90 ? 'bg-gradient-to-r from-red-500 to-red-600' :
-                                                                    usagePercentage >= 75 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
-                                                                        'bg-gradient-to-r from-green-500 to-emerald-600'
-                                                                    }`}
-                                                                style={{ width: `${usagePercentage}%` }}
+
+                                                        {/* Quick Stats Row */}
+                                                        <div className="grid grid-cols-3 gap-4 mb-3">
+                                                            <div className="bg-white/70 rounded-lg p-3 border border-blue-100">
+                                                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Expenses</p>
+                                                                <p className="font-bold text-blue-700">{formatCurrency(totalExpenses)}</p>
+                                                            </div>
+                                                            <div className="bg-white/70 rounded-lg p-3 border border-purple-100">
+                                                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Range Expenses</p>
+                                                                <p className="font-bold text-purple-700">{formatCurrency(rangeExpensesTotal)}</p>
+                                                            </div>
+                                                            <div className="bg-white/70 rounded-lg p-3 border border-orange-100">
+                                                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Regular Expenses</p>
+                                                                <p className="font-bold text-orange-700">{formatCurrency(regularExpensesTotal)}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Progress Bar */}
+                                                        <div className="mb-2">
+                                                            <ProgressBar
+                                                                percentage={usagePercentage}
+                                                                amount={totalExpenses}
+                                                                maxAmount={maxEpf}
+                                                                size="md"
                                                             />
                                                         </div>
-                                                        <div className="flex items-center justify-between text-sm">
-                                                            <span className={`font-semibold ${usagePercentage >= 90 ? 'text-red-600' :
-                                                                usagePercentage >= 75 ? 'text-orange-600' :
-                                                                    'text-green-600'
-                                                                }`}>
-                                                                {usagePercentage.toFixed(1)}% Used
-                                                            </span>
-                                                            <span className="text-gray-700 font-medium">
-                                                                Remaining: {formatCurrency(remainingAmount)}
-                                                            </span>
-                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
 
-                                            {/* Financial Details */}
-                                            <div className="flex items-start space-x-3 bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-yellow-100/30 shadow-sm hover:shadow-md transition-all duration-200">
-                                                <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
-                                                    <DollarSign className="w-4 h-4 text-white" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-yellow-800 mb-3">Financial Information</p>
-                                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                                        <div className="bg-white/50 rounded-lg p-3 border border-gray-100">
-                                                            <p className="text-gray-600 text-xs uppercase tracking-wide mb-1">Basic Salary</p>
-                                                            <p className="font-semibold text-gray-900 text-base">{formatCurrency(record.user.basicSalary)}</p>
+                                                <div className="flex items-center space-x-2 ml-4">
+                                                    {isExpanded && (
+                                                        <div className="flex items-center space-x-2 mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openEditModal(record);
+                                                                }}
+                                                                className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded-lg transition-all duration-200 transform hover:scale-105"
+                                                                title="Edit EPF Record"
+                                                            >
+                                                                <Edit3 className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openDeleteModal(record);
+                                                                }}
+                                                                className="p-2 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-all duration-200 transform hover:scale-105"
+                                                                title="Delete EPF Record"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
                                                         </div>
-                                                        <div className="bg-white/50 rounded-lg p-3 border border-gray-100">
-                                                            <p className="text-gray-600 text-xs uppercase tracking-wide mb-1">EPF Expense</p>
-                                                            <p className="font-semibold text-gray-900 text-base">{formatCurrency(record.expense)}</p>
-                                                        </div>
+                                                    )}
+                                                    <div className="group-hover:text-blue-600 transition-colors duration-200">
+                                                        {isExpanded ? (
+                                                            <ChevronUp className="w-5 h-5" />
+                                                        ) : (
+                                                            <ChevronDown className="w-5 h-5" />
+                                                        )}
                                                     </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Timestamps */}
-                                            <div className="flex items-center justify-between pt-3 mt-2 border-t border-blue-200/50 text-sm text-gray-500 bg-white/30 rounded-lg px-4 py-3 backdrop-blur-sm">
-                                                <div className="flex items-center space-x-2">
-                                                    <Calendar className="w-4 h-4 text-blue-500" />
-                                                    <span>Created {formatDate(record.createdAt)}</span>
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <Edit3 className="w-4 h-4 text-blue-500" />
-                                                    <span>Updated {formatDate(record.updatedAt)}</span>
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {/* Expandable Content */}
+                                        {isExpanded && (
+                                            <div className="bg-gradient-to-br from-slate-50 via-blue-25 to-indigo-25 px-6 py-6 animate-in slide-in-from-top duration-300 border-t border-blue-100/50">
+                                                <div className="space-y-6">
+                                                    {/* Employee Information */}
+                                                    {record.user && (
+                                                        <div className="flex items-start space-x-3 bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-blue-100/50 shadow-sm hover:shadow-md transition-all duration-200">
+                                                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                                                                <User className="w-5 h-5 text-white" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-semibold text-blue-800 mb-3">Employee Details</p>
+                                                                <div className="grid grid-cols-2 gap-4">
+                                                                    <div>
+                                                                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Full Name</p>
+                                                                        <p className="text-gray-900 font-medium">{record.user.name}</p>
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Email Address</p>
+                                                                        <p className="text-gray-600 text-sm break-all">{record.user.email}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* EPF Usage Summary with Enhanced Progress */}
+                                                    <div className="flex items-start space-x-3 bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-green-100/50 shadow-sm hover:shadow-md transition-all duration-200">
+                                                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                                                            <BarChart3 className="w-5 h-5 text-white" />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-semibold text-green-800 mb-4">EPF Usage Overview</p>
+                                                            <div className="space-y-4">
+                                                                <ProgressBar
+                                                                    percentage={usagePercentage}
+                                                                    amount={totalExpenses}
+                                                                    maxAmount={maxEpf}
+                                                                    size="lg"
+                                                                />
+                                                                <div className="grid grid-cols-3 gap-3 text-sm">
+                                                                    <div className="bg-green-50/70 rounded-lg p-3 text-center border border-green-100">
+                                                                        <p className="text-green-600 font-semibold">{formatCurrency(totalExpenses)}</p>
+                                                                        <p className="text-xs text-gray-500">Used</p>
+                                                                    </div>
+                                                                    <div className="bg-blue-50/70 rounded-lg p-3 text-center border border-blue-100">
+                                                                        <p className="text-blue-600 font-semibold">{formatCurrency(remainingAmount)}</p>
+                                                                        <p className="text-xs text-gray-500">Remaining</p>
+                                                                    </div>
+                                                                    <div className="bg-gray-50/70 rounded-lg p-3 text-center border border-gray-100">
+                                                                        <p className="text-gray-600 font-semibold">{formatCurrency(maxEpf)}</p>
+                                                                        <p className="text-xs text-gray-500">Limit</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Range Expenses */}
+                                                    {record.rangeExpenses && record.rangeExpenses.length > 0 && (
+                                                        <div className="flex items-start space-x-3 bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-purple-100/50 shadow-sm hover:shadow-md transition-all duration-200">
+                                                            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                                                                <Target className="w-5 h-5 text-white" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-semibold text-purple-800 mb-4">Range Expenses</p>
+                                                                <div className="space-y-4">
+                                                                    {record.rangeExpenses.map((range, rangeIndex) => (
+                                                                        <div key={rangeIndex} className="bg-white/90 rounded-lg p-4 border border-purple-100">
+                                                                            <div className="flex justify-between items-center mb-3">
+                                                                                <h4 className="font-semibold text-purple-700">{range.name}</h4>
+                                                                                <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
+                                                                                    {formatCurrency(range.expense || 0)}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="space-y-2">
+                                                                                {range.expenses && range.expenses.map((expense, expenseIndex) => (
+                                                                                    <div key={expenseIndex} className="flex items-center justify-between bg-purple-50/80 rounded p-3 border border-purple-100/50">
+                                                                                        <div className="flex items-center space-x-3">
+                                                                                            <Activity className="w-4 h-4 text-purple-500" />
+                                                                                            <span className="text-sm text-gray-700">
+                                                                                                {formatDate(expense.expensedAt)}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <span className="font-semibold text-purple-700">
+                                                                                            {formatCurrency(expense.amount)}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Regular Expenses */}
+                                                    {record.regularExpenses && record.regularExpenses.items && record.regularExpenses.items.length > 0 && (
+                                                        <div className="flex items-start space-x-3 bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-orange-100/50 shadow-sm hover:shadow-md transition-all duration-200">
+                                                            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                                                                <CreditCard className="w-5 h-5 text-white" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex justify-between items-center mb-4">
+                                                                    <p className="text-sm font-semibold text-orange-800">Regular Expenses</p>
+                                                                    <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-medium">
+                                                                        {formatCurrency(record.regularExpenses.expense || 0)}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    {record.regularExpenses.items.map((expense, index) => (
+                                                                        <div key={index} className="flex items-center justify-between bg-orange-50/80 rounded p-3 border border-orange-100/50">
+                                                                            <div className="flex items-center space-x-3">
+                                                                                <Activity className="w-4 h-4 text-orange-500" />
+                                                                                <span className="text-sm text-gray-700">
+                                                                                    {formatDate(expense.expensedAt)}
+                                                                                </span>
+                                                                            </div>
+                                                                            <span className="font-semibold text-orange-700">
+                                                                                {formatCurrency(expense.amount)}
+                                                                            </span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Timestamps */}
+                                                    <div className="flex items-center justify-between pt-3 mt-2 border-t border-blue-200/50 text-sm text-gray-500 bg-white/50 rounded-lg px-4 py-3 backdrop-blur-sm">
+                                                        <div className="flex items-center space-x-2">
+                                                            <Calendar className="w-4 h-4 text-blue-500" />
+                                                            <span>Created {formatDate(record.createdAt)}</span>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2">
+                                                            <Edit3 className="w-4 h-4 text-blue-500" />
+                                                            <span>Updated {formatDate(record.updatedAt)}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
+                                );
+                            })
+                        )}
+                    </div>
+
+
+                    {/* Edit Modal */}
+                    <ModalBackdrop show={showEditModal} onClose={() => setShowEditModal(false)}>
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <Edit3 className="w-5 h-5 text-blue-600" />
+                                    </div>
+                                    <h2 className="text-xl font-bold text-gray-900">Edit EPF Record</h2>
+                                </div>
+                                <button
+                                    onClick={() => setShowEditModal(false)}
+                                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                                >
+                                    <X className="w-5 h-5 text-gray-500" />
+                                </button>
                             </div>
-                        );
-                    })
-                )}
-            </div>
 
-            {/* Edit Modal */}
-            <ModalBackdrop show={showEditModal} onClose={() => setShowEditModal(false)}>
-                <div className="p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                <Edit3 className="w-5 h-5 text-blue-600" />
+                            <div className="space-y-5">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Year
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={editData.year}
+                                        onChange={(e) => setEditData({ ...editData, year: e.target.value })}
+                                        className="w-full outline-none px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                                        placeholder="Enter year"
+                                        min="2000"
+                                        max="2030"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="flex space-x-3 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowEditModal(false)}
+                                        className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors duration-200"
+                                        disabled={isLoading}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleEditSubmit}
+                                        disabled={isLoading || !editData.year}
+                                        className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50"
+                                    >
+                                        <Save className="w-4 h-4" />
+                                        <span>{isLoading ? 'Saving...' : 'Save Changes'}</span>
+                                    </button>
+                                </div>
                             </div>
-                            <h2 className="text-xl font-bold text-gray-900">Edit EPF Record</h2>
                         </div>
-                        <button
-                            onClick={() => setShowEditModal(false)}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                        >
-                            <X className="w-5 h-5 text-gray-500" />
-                        </button>
-                    </div>
+                    </ModalBackdrop>
 
-                    <div className="space-y-5">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                EPF Expense Amount
-                            </label>
-                            <input
-                                type="number"
-                                value={editData.expense}
-                                onChange={(e) => setEditData({ ...editData, expense: e.target.value })}
-                                className="w-full outline-none px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                                placeholder="Enter EPF expense amount"
-                                min="0"
-                                step="0.01"
-                                required
-                            />
-                        </div>
+                    {/* Delete Confirmation Modal */}
+                    <ModalBackdrop show={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
+                        <div className="p-6">
+                            <div className="flex items-center space-x-3 mb-6">
+                                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                                    <AlertTriangle className="w-6 h-6 text-red-600" />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900">Delete EPF Record</h2>
+                                    <p className="text-sm text-gray-500 mt-1">This action cannot be undone</p>
+                                </div>
+                            </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Year
-                            </label>
-                            <input
-                                type="number"
-                                value={editData.year}
-                                onChange={(e) => setEditData({ ...editData, year: e.target.value })}
-                                className="w-full outline-none px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                                placeholder="Enter year"
-                                min="2000"
-                                max="2030"
-                                required
-                            />
-                        </div>
+                            {selectedRecord && (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                                    <p className="text-red-800">
+                                        Are you sure you want to delete the EPF record for <strong>"{selectedRecord.user?.name || 'Unknown'}"</strong>
+                                        for year {new Date(selectedRecord.year).getFullYear()}?
+                                        This will permanently remove the record and all associated data.
+                                    </p>
+                                </div>
+                            )}
 
-                        <div className="flex space-x-3 pt-4">
-                            <button
-                                type="button"
-                                onClick={() => setShowEditModal(false)}
-                                className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors duration-200"
-                                disabled={isLoading}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleEditSubmit}
-                                disabled={isLoading || !editData.expense || !editData.year}
-                                className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50"
-                            >
-                                <Save className="w-4 h-4" />
-                                <span>{isLoading ? 'Saving...' : 'Save Changes'}</span>
-                            </button>
+                            <div className="flex space-x-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDeleteModal(false)}
+                                    className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors duration-200"
+                                    disabled={isLoading}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDeleteConfirm}
+                                    disabled={isLoading}
+                                    className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg font-medium transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    <span>{isLoading ? 'Deleting...' : 'Delete Record'}</span>
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </ModalBackdrop>
-
-            {/* Delete Confirmation Modal */}
-            <ModalBackdrop show={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
-                <div className="p-6">
-                    <div className="flex items-center space-x-3 mb-6">
-                        <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                            <AlertTriangle className="w-6 h-6 text-red-600" />
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-gray-900">Delete EPF Record</h2>
-                            <p className="text-sm text-gray-500 mt-1">This action cannot be undone</p>
-                        </div>
-                    </div>
-
-                    {selectedRecord && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                            <p className="text-red-800">
-                                Are you sure you want to delete the EPF record for <strong>"{selectedRecord.user.name}"</strong>
-                                (EPF: {selectedRecord.user.epfNumber}) for year {new Date(selectedRecord.year).getFullYear()}?
-                                This will permanently remove the record and all associated data.
-                            </p>
-                        </div>
-                    )}
-
-                    <div className="flex space-x-3">
-                        <button
-                            type="button"
-                            onClick={() => setShowDeleteModal(false)}
-                            className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors duration-200"
-                            disabled={isLoading}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleDeleteConfirm}
-                            disabled={isLoading}
-                            className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg font-medium transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                            <span>{isLoading ? 'Deleting...' : 'Delete Record'}</span>
-                        </button>
-                    </div>
-                </div>
-            </ModalBackdrop>
+                    </ModalBackdrop>
+                </>
+            )}
         </>
     );
 };

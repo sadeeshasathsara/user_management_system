@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { User, Save, Search, AlertCircle, CheckCircle, X, ChevronDown, DollarSign } from 'lucide-react';
+import { User, Save, Search, AlertCircle, CheckCircle, X, ChevronDown, DollarSign, Users, Target, ExternalLink, TrendingUp, Briefcase, Calendar } from 'lucide-react';
+import { getEmployeesApi } from '../apis/employee.api';
+import { getMaxEpf, getEmpEpf, createOrUpdateEmployeeEpf } from '../apis/epf.api';
+import { useNavigate } from 'react-router-dom';
 
 const AddEpfForm = ({ onBack }) => {
     const currentYear = new Date().getFullYear();
@@ -7,46 +10,83 @@ const AddEpfForm = ({ onBack }) => {
     const [formData, setFormData] = useState({
         user: '',
         expense: '',
-        year: currentYear.toString()
+        year: currentYear.toString(),
+        selectedRange: null // New field for selected EPF range
     });
 
-    const [users, setUsers] = useState([]);
     const [filteredUsers, setFilteredUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [searchLoading, setSearchLoading] = useState(false);
     const [errors, setErrors] = useState({});
     const [notification, setNotification] = useState(null);
     const [currentEpfExpense, setCurrentEpfExpense] = useState(null);
 
-    // Mock users data - replace with actual API call
+    // New state for EPF ranges and employee EPF data
+    const [epfRanges, setEpfRanges] = useState([]);
+    const [maxEpf, setMaxEpf] = useState(0);
+    const [rangesLoading, setRangesLoading] = useState(false);
+    const [employeeEpfData, setEmployeeEpfData] = useState(null);
+    const [employeeEpfLoading, setEmployeeEpfLoading] = useState(false);
+
+    // Fetch EPF ranges on component mount
     useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                // Replace with actual API endpoint
-                const response = await fetch('/api/users');
-                const data = await response.json();
-                setUsers(data);
-                setFilteredUsers(data);
-            } catch (error) {
-                // Mock data for demonstration
-                const mockUsers = [
-                    { _id: '1', epfNumber: '1001', name: 'John Doe', department: 'IT', profilePicture: null },
-                    { _id: '2', epfNumber: '1002', name: 'Jane Smith', department: 'HR', profilePicture: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face' },
-                    { _id: '3', epfNumber: '1003', name: 'Mike Johnson', department: 'Finance', profilePicture: null },
-                    { _id: '4', epfNumber: '1004', name: 'Sarah Wilson', department: 'Marketing', profilePicture: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face' },
-                    { _id: '5', epfNumber: '1005', name: 'David Brown', department: 'Operations', profilePicture: null },
-                    { _id: '6', epfNumber: '1006', name: 'Lisa Davis', department: 'IT', profilePicture: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face' },
-                    { _id: '7', epfNumber: '1007', name: 'Tom Anderson', department: 'Finance', profilePicture: null },
-                    { _id: '8', epfNumber: '1008', name: 'Emma Taylor', department: 'HR', profilePicture: 'https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?w=150&h=150&fit=crop&crop=face' }
-                ];
-                setUsers(mockUsers);
-                setFilteredUsers(mockUsers);
-            }
-        };
-        fetchUsers();
+        fetchEpfRanges();
     }, []);
+
+    const fetchEpfRanges = async () => {
+        try {
+            setRangesLoading(true);
+            const response = await getMaxEpf();
+
+            if (response.success && response.data) {
+                setMaxEpf(response.data.maxEpf || 0);
+                setEpfRanges(response.data.ranges || []);
+            }
+        } catch (error) {
+            console.error('Error fetching EPF ranges:', error);
+            showNotification('error', 'Failed to load EPF ranges');
+        } finally {
+            setRangesLoading(false);
+        }
+    };
+
+    // Fetch employee EPF data when user is selected
+    useEffect(() => {
+        if (formData.user && formData.year) {
+            fetchEmployeeEpfData(formData.user, formData.year);
+        } else {
+            setEmployeeEpfData(null);
+        }
+    }, [formData.user, formData.year]);
+
+    const fetchEmployeeEpfData = async (userId, year) => {
+        try {
+            setEmployeeEpfLoading(true);
+            const query = {
+                user_id: userId,
+                year: parseInt(year)
+            };
+
+            const response = await getEmpEpf(query);
+
+            // Handle the nested API response structure
+            if (response.success && response.data && response.data.success && response.data.data && Array.isArray(response.data.data)) {
+                // Get the first record (should be only one for the user and year)
+                const employeeRecord = response.data.data[0];
+                setEmployeeEpfData(employeeRecord || null);
+            } else {
+                setEmployeeEpfData(null);
+            }
+        } catch (error) {
+            console.error('Error fetching employee EPF data:', error);
+            setEmployeeEpfData(null);
+        } finally {
+            setEmployeeEpfLoading(false);
+        }
+    };
 
     // Real-time validation functions
     const validateExpense = (value) => {
@@ -62,10 +102,25 @@ const AddEpfForm = ({ onBack }) => {
         if (numValue > 1000000) {
             return 'Expense cannot exceed 1,000,000';
         }
+
         // Check for more than 2 decimal places
         if (value.includes('.') && value.split('.')[1]?.length > 2) {
             return 'Expense can have maximum 2 decimal places';
         }
+
+        // Validate against selected range
+        if (formData.selectedRange) {
+            const selectedRangeData = epfRanges.find(range => range.name === formData.selectedRange);
+            if (selectedRangeData && numValue > selectedRangeData.maxValue) {
+                return `Expense cannot exceed ${selectedRangeData.name} limit of LKR ${selectedRangeData.maxValue.toLocaleString()}`;
+            }
+        }
+
+        // Validate against max EPF
+        if (maxEpf && numValue > maxEpf) {
+            return `Expense cannot exceed maximum EPF limit of LKR ${maxEpf.toLocaleString()}`;
+        }
+
         return '';
     };
 
@@ -76,43 +131,94 @@ const AddEpfForm = ({ onBack }) => {
 
     // Filter users based on search term
     useEffect(() => {
-        if (searchTerm.trim() === '') {
-            setFilteredUsers(users);
-        } else {
-            const filtered = users.filter(user =>
-                user.epfNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                user.department.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-            setFilteredUsers(filtered);
-        }
-    }, [searchTerm, users]);
+        const delayDebounce = setTimeout(async () => {
+            try {
+                if (!searchTerm.trim()) {
+                    setFilteredUsers([]);
+                    setSearchLoading(false);
+                    return;
+                }
 
-    // Fetch current EPF expense when user is selected
-    useEffect(() => {
-        if (formData.user && formData.year) {
-            fetchCurrentEpfExpense(formData.user, formData.year);
-        } else {
-            setCurrentEpfExpense(null);
-        }
-    }, [formData.user, formData.year]);
+                setSearchLoading(true);
 
-    const fetchCurrentEpfExpense = async (userId, year) => {
-        try {
-            // Replace with actual API endpoint
-            const response = await fetch(`/api/epf/${userId}/${year}`);
-            if (response.ok) {
-                const data = await response.json();
-                setCurrentEpfExpense(data.expense || 0);
-            } else {
-                setCurrentEpfExpense(0);
+                // Only search by epfNumber and name
+                const searchQuery = {
+                    search: searchTerm.trim()
+                };
+
+                const response = await getEmployeesApi(searchQuery);
+
+                console.log('API Response:', response); // Debug log
+
+                // Handle different API response structures
+                let users = [];
+                if (Array.isArray(response)) {
+                    users = response;
+                } else if (response && Array.isArray(response.users)) {
+                    users = response.users;
+                } else if (response && Array.isArray(response.data)) {
+                    users = response.data;
+                } else {
+                    console.warn('Unexpected API response structure:', response);
+                    setFilteredUsers([]);
+                    setSearchLoading(false);
+                    return;
+                }
+
+                console.log('Extracted users array:', users); // Debug log
+
+                // Filter to ensure we only have valid user objects with required fields
+                const validUsers = users.filter(item => {
+                    const isValidUser = item &&
+                        typeof item === 'object' &&
+                        item._id &&
+                        item.name &&
+                        item.epfNumber &&
+                        typeof item.epfNumber === 'string' &&
+                        typeof item.name === 'string';
+
+                    if (!isValidUser) {
+                        console.log('Filtered out invalid item:', item); // Debug log
+                    }
+                    return isValidUser;
+                });
+
+                console.log('Valid users after filtering:', validUsers); // Debug log
+
+                // Additional client-side filtering for epfNumber and name only
+                const filtered = validUsers.filter(user => {
+                    try {
+                        const searchLower = searchTerm.toLowerCase();
+                        return (
+                            (user.epfNumber && typeof user.epfNumber === 'string' && user.epfNumber.toLowerCase().includes(searchLower)) ||
+                            (user.name && typeof user.name === 'string' && user.name.toLowerCase().includes(searchLower))
+                        );
+                    } catch (error) {
+                        console.error('Error filtering user:', user, error);
+                        return false;
+                    }
+                });
+
+                console.log('Final filtered users:', filtered); // Debug log
+                setFilteredUsers(filtered);
+            } catch (err) {
+                console.error('Error searching users:', err);
+                setFilteredUsers([]);
+            } finally {
+                setSearchLoading(false);
             }
-        } catch (error) {
-            // Mock current expense for demonstration
-            const mockExpense = Math.floor(Math.random() * 50000) + 10000;
-            setCurrentEpfExpense(mockExpense);
+        }, 400); // 400ms debounce
+
+        // Set loading state immediately when user starts typing
+        if (searchTerm.trim()) {
+            setSearchLoading(true);
         }
-    };
+
+        return () => {
+            clearTimeout(delayDebounce);
+            setSearchLoading(false);
+        };
+    }, [searchTerm]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -140,11 +246,37 @@ const AddEpfForm = ({ onBack }) => {
             [name]: processedValue
         }));
 
-        // Update errors
-        setErrors(prev => ({
+        // Update errors - only set error if it exists, otherwise remove it
+        setErrors(prev => {
+            const newErrors = { ...prev };
+            if (error) {
+                newErrors[name] = error;
+            } else {
+                delete newErrors[name];
+            }
+            return newErrors;
+        });
+    };
+
+    const handleRangeSelect = (rangeName) => {
+        setFormData(prev => ({
             ...prev,
-            [name]: error
+            selectedRange: prev.selectedRange === rangeName ? null : rangeName
         }));
+
+        // Re-validate expense if it exists
+        if (formData.expense) {
+            const error = validateExpense(formData.expense);
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                if (error) {
+                    newErrors.expense = error;
+                } else {
+                    delete newErrors.expense;
+                }
+                return newErrors;
+            });
+        }
     };
 
     const handleUserSelect = (user) => {
@@ -157,10 +289,11 @@ const AddEpfForm = ({ onBack }) => {
         setIsDropdownOpen(false);
 
         // Clear user error
-        setErrors(prev => ({
-            ...prev,
-            user: ''
-        }));
+        setErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors.user;
+            return newErrors;
+        });
     };
 
     const handleSearchChange = (e) => {
@@ -193,6 +326,14 @@ const AddEpfForm = ({ onBack }) => {
         return Object.keys(newErrors).length === 0;
     };
 
+    // Helper function to check if form is valid for button state
+    const isFormValid = () => {
+        return formData.user &&
+            formData.expense &&
+            !validateUser(formData.user) &&
+            !validateExpense(formData.expense);
+    };
+
     const showNotification = (type, message) => {
         setNotification({ type, message });
         setTimeout(() => setNotification(null), 5000);
@@ -201,61 +342,71 @@ const AddEpfForm = ({ onBack }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!validateForm()) {
-            return;
-        }
+        if (!validateForm()) return;
 
         setLoading(true);
 
         try {
-            const submitData = {
-                user: formData.user,
-                expense: parseFloat(formData.expense),
-                year: new Date(`${formData.year}-01-01`)
-            };
+            const now = new Date().toISOString();
+            const rangeExpenses = [];
+            const regularExpenses = [];
 
-            console.log('Submitting EPF data:', submitData);
+            if (formData.expense) {
+                const expenseEntry = {
+                    amount: parseFloat(formData.expense),
+                    expensedAt: now,
+                    updatedAt: now,
+                };
 
-            // Replace with your actual API endpoint
-            const response = await fetch('/api/epf', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(submitData)
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                showNotification('success', 'EPF record created successfully!');
-                handleReset();
-            } else {
-                if (data.errors) {
-                    setErrors(data.errors);
-                } else if (data.message) {
-                    showNotification('error', data.message);
+                if (formData.selectedRange) {
+                    // Add to rangeExpenses
+                    rangeExpenses.push({
+                        name: formData.selectedRange,
+                        expenses: [expenseEntry],
+                    });
                 } else {
-                    showNotification('error', 'Failed to create EPF record');
+                    // Add to regularExpenses
+                    regularExpenses.push(expenseEntry);
                 }
             }
+
+            const payload = {
+                user: formData.user,
+                year: new Date(`${formData.year}-01-01`),
+                rangeExpenses,
+                regularExpenses,
+            };
+
+            console.log(payload);
+
+            const response = await createOrUpdateEmployeeEpf(payload);
+
+            if (response.success) {
+                showNotification('success', 'EPF record submitted successfully!');
+                handleReset();
+            } else {
+                showNotification('error', response.message || 'Submission failed. Try again.');
+            }
         } catch (error) {
-            console.error('Error creating EPF record:', error);
+            console.error('Submission error:', error);
             showNotification('error', 'Network error. Please try again.');
         } finally {
             setLoading(false);
         }
     };
 
+
+
     const handleReset = () => {
         setFormData({
             user: '',
             expense: '',
-            year: currentYear.toString()
+            year: currentYear.toString(),
+            selectedRange: null
         });
         setSelectedUser(null);
         setSearchTerm('');
-        setCurrentEpfExpense(null);
+        setEmployeeEpfData(null);
         setErrors({});
         setNotification(null);
         setIsDropdownOpen(false);
@@ -290,6 +441,18 @@ const AddEpfForm = ({ onBack }) => {
             </div>
         );
     };
+
+    const getIconComponent = (iconName) => {
+        const icons = {
+            Users,
+            User,
+            Target
+        };
+        const IconComponent = icons[iconName] || Users;
+        return <IconComponent className="w-5 h-5" />;
+    };
+
+    const navigate = useNavigate();
 
     return (
         <div className="">
@@ -347,7 +510,7 @@ const AddEpfForm = ({ onBack }) => {
                                             onChange={handleSearchChange}
                                             onFocus={() => setIsDropdownOpen(true)}
                                             className="w-full px-4 py-3 pl-10 pr-10 rounded-lg border-0 focus:outline-none focus:ring-0"
-                                            placeholder="Search by EPF number, name, or department..."
+                                            placeholder="Search by EPF number or name..."
                                             disabled={loading}
                                         />
                                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -363,37 +526,71 @@ const AddEpfForm = ({ onBack }) => {
                                     {/* Dropdown */}
                                     {isDropdownOpen && (
                                         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                            {filteredUsers.length === 0 ? (
+                                            {searchLoading ? (
+                                                // Skeleton Loading
+                                                <div className="px-4 py-3 space-y-3">
+                                                    {[...Array(3)].map((_, index) => (
+                                                        <div key={index} className="flex items-center space-x-3 animate-pulse">
+                                                            <div className="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0"></div>
+                                                            <div className="flex-1">
+                                                                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                                                                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : !Array.isArray(filteredUsers) || filteredUsers.length === 0 ? (
                                                 <div className="px-4 py-3 text-sm text-gray-500">
-                                                    No employees found
+                                                    {searchTerm.trim() ? 'No employees found' : 'Start typing to search employees'}
                                                 </div>
                                             ) : (
-                                                filteredUsers.map((user) => (
-                                                    <button
-                                                        key={user._id}
-                                                        type="button"
-                                                        onClick={() => handleUserSelect(user)}
-                                                        className={`w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none transition-colors duration-200 ${selectedUser?._id === user._id ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
-                                                            }`}
-                                                    >
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex items-center space-x-3">
-                                                                <ProfilePicture user={user} size="sm" />
-                                                                <div>
-                                                                    <div className="font-medium">
-                                                                        EPF: {user.epfNumber} - {user.name}
+                                                filteredUsers.map((user) => {
+                                                    // Additional safety check to ensure it's a valid user object
+                                                    if (!user ||
+                                                        typeof user !== 'object' ||
+                                                        !user._id ||
+                                                        !user.epfNumber ||
+                                                        !user.name ||
+                                                        typeof user.epfNumber !== 'string' ||
+                                                        typeof user.name !== 'string') {
+                                                        console.error('Invalid user object in render:', user);
+                                                        return null;
+                                                    }
+
+                                                    try {
+                                                        return (
+                                                            <button
+                                                                key={user._id}
+                                                                type="button"
+                                                                onClick={() => handleUserSelect(user)}
+                                                                className={`w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none transition-colors duration-200 ${selectedUser?._id === user._id ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
+                                                                    }`}
+                                                            >
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center space-x-3">
+                                                                        <ProfilePicture user={user} size="sm" />
+                                                                        <div>
+                                                                            <div className="font-medium">
+                                                                                EPF: {String(user.epfNumber)} - {String(user.name)}
+                                                                            </div>
+                                                                            {user.department && typeof user.department === 'string' && (
+                                                                                <div className="text-sm text-gray-500">
+                                                                                    Department: {String(user.department)}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="text-sm text-gray-500">
-                                                                        Department: {user.department}
-                                                                    </div>
+                                                                    {selectedUser?._id === user._id && (
+                                                                        <CheckCircle className="w-4 h-4 text-blue-600" />
+                                                                    )}
                                                                 </div>
-                                                            </div>
-                                                            {selectedUser?._id === user._id && (
-                                                                <CheckCircle className="w-4 h-4 text-blue-600" />
-                                                            )}
-                                                        </div>
-                                                    </button>
-                                                ))
+                                                            </button>
+                                                        );
+                                                    } catch (error) {
+                                                        console.error('Error rendering user:', user, error);
+                                                        return null;
+                                                    }
+                                                })
                                             )}
                                         </div>
                                     )}
@@ -410,7 +607,10 @@ const AddEpfForm = ({ onBack }) => {
                             {/* Selected Employee Info */}
                             {selectedUser && (
                                 <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                    <h5 className="font-medium text-blue-800 mb-3">Selected Employee</h5>
+                                    <div className='w-full flex items-center justify-between mb-3'>
+                                        <h5 className="font-medium text-blue-800 mb-3">Selected Employee</h5>
+                                        <h5 onClick={() => { navigate(`epf?id=${employeeEpfData._id}`, '_blank') }} className="font-sm text-green-500 cursor-pointer hover:text-green-600 mb-3">All EPF Records</h5>
+                                    </div>
                                     <div className="flex items-start space-x-4">
                                         <ProfilePicture user={selectedUser} size="lg" />
                                         <div className="flex-1">
@@ -423,20 +623,56 @@ const AddEpfForm = ({ onBack }) => {
                                                     <span className="font-medium text-blue-700">Name:</span>
                                                     <span className="ml-2 text-blue-800">{selectedUser.name}</span>
                                                 </div>
-                                                <div>
-                                                    <span className="font-medium text-blue-700">Department:</span>
-                                                    <span className="ml-2 text-blue-800">{selectedUser.department}</span>
-                                                </div>
+                                                {selectedUser.department && (
+                                                    <div>
+                                                        <span className="font-medium text-blue-700">Department:</span>
+                                                        <span className="ml-2 text-blue-800">{selectedUser.department}</span>
+                                                    </div>
+                                                )}
                                             </div>
 
-                                            {/* Current EPF Expense */}
-                                            {currentEpfExpense !== null && (
+                                            {/* Employee EPF Data */}
+                                            {employeeEpfLoading ? (
                                                 <div className="mt-3 pt-3 border-t border-blue-200">
-                                                    <div className="flex items-center space-x-2">
-                                                        <span className="font-medium text-blue-700">Current EPF Expense ({formData.year}):</span>
-                                                        <span className="text-lg font-bold text-blue-800">
-                                                            LKR {currentEpfExpense.toLocaleString()}
-                                                        </span>
+                                                    <div className="animate-pulse">
+                                                        <div className="h-4 bg-blue-200 rounded w-3/4 mb-2"></div>
+                                                        <div className="h-3 bg-blue-200 rounded w-1/2"></div>
+                                                    </div>
+                                                </div>
+                                            ) : employeeEpfData ? (
+                                                <div className="mt-3 pt-3 border-t border-blue-200">
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center space-x-2">
+                                                            <span className="font-medium text-blue-700">Total EPF Expense ({formData.year}):</span>
+                                                            <span className="text-lg font-bold text-blue-800">
+                                                                LKR {employeeEpfData.expense?.toLocaleString() || '0'}
+                                                            </span>
+                                                        </div>
+
+                                                        {employeeEpfData.rangeExpenses && employeeEpfData.rangeExpenses.length > 0 && (
+                                                            <div className="mt-2">
+                                                                <div className="text-sm font-medium text-blue-700 mb-1">Range Expenses:</div>
+                                                                <div className="space-y-1">
+                                                                    {employeeEpfData.rangeExpenses.map((range, index) => (
+                                                                        <div key={index} className="text-sm text-blue-600">
+                                                                            • {range.name}: LKR {range.expense?.toLocaleString() || '0'}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="text-sm font-medium text-blue-700 mb-1">Regular Expenses:</div>
+                                                        <div className="text-sm text-blue-600">
+                                                            • Regular: LKR {employeeEpfData.regularExpenses?.expense?.toLocaleString() || '0'}
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="mt-3 pt-3 border-t border-blue-200">
+                                                    <div className="text-sm text-blue-600">
+                                                        No EPF records found for {formData.year}
                                                     </div>
                                                 </div>
                                             )}
@@ -446,84 +682,189 @@ const AddEpfForm = ({ onBack }) => {
                             )}
                         </div>
 
+                        {/* EPF Range Selection */}
+                        <div className="border-b border-gray-200 pb-6">
+                            <h4 className="text-md font-medium text-gray-700 mb-4">EPF Range Selection (Optional)</h4>
+
+                            {rangesLoading ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {[...Array(2)].map((_, index) => (
+                                        <div key={index} className="animate-pulse">
+                                            <div className="h-20 bg-gray-200 rounded-lg"></div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : epfRanges.length > 0 ? (
+                                <>
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Select a range to set expense limits, or leave unselected for no range restrictions (max: LKR {maxEpf.toLocaleString()})
+                                    </p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {epfRanges.map((range) => (
+                                            <button
+                                                key={range.name}
+                                                type="button"
+                                                onClick={() => handleRangeSelect(range.name)}
+                                                className={`p-4 rounded-xl border-2 transition-all duration-200 text-left transform hover:scale-105 ${formData.selectedRange === range.name
+                                                    ? 'border-indigo-500 bg-gradient-to-br from-indigo-50 to-purple-50 shadow-lg'
+                                                    : 'border-gray-200 hover:border-indigo-300 bg-white hover:shadow-md'
+                                                    }`}
+                                            >
+                                                <div className="flex items-start space-x-3">
+                                                    <div className={`p-3 rounded-xl ${formData.selectedRange === range.name
+                                                        ? 'bg-indigo-100 text-indigo-600'
+                                                        : 'bg-gray-100 text-gray-600'
+                                                        }`}>
+                                                        {getIconComponent(range.icon)}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className={`font-semibold text-lg ${formData.selectedRange === range.name
+                                                            ? 'text-indigo-800'
+                                                            : 'text-gray-900'
+                                                            }`}>
+                                                            {range.name}
+                                                        </div>
+                                                        <div className={`text-sm mt-1 ${formData.selectedRange === range.name
+                                                            ? 'text-indigo-600'
+                                                            : 'text-gray-500'
+                                                            }`}>
+                                                            {range.description}
+                                                        </div>
+                                                        <div className={`text-sm font-bold mt-2 px-3 py-1 rounded-full inline-block ${formData.selectedRange === range.name
+                                                            ? 'bg-indigo-100 text-indigo-700'
+                                                            : 'bg-gray-100 text-gray-700'
+                                                            }`}>
+                                                            Max: LKR {range.maxValue.toLocaleString()}
+                                                        </div>
+                                                    </div>
+                                                    {formData.selectedRange === range.name && (
+                                                        <CheckCircle className="w-6 h-6 text-indigo-600 flex-shrink-0" />
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-center py-8 text-gray-500">
+                                    <Target className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                                    <p>No EPF ranges available</p>
+                                </div>
+                            )}
+                        </div>
+
                         {/* EPF Details */}
                         <div className="border-b border-gray-200 pb-6">
-                            <h4 className="text-md font-medium text-gray-700 mb-4">EPF Details</h4>
+                            <div className="flex items-center space-x-2 mb-4">
+                                <DollarSign className="w-5 h-5 text-emerald-600" />
+                                <h4 className="text-md font-semibold text-gray-800">EPF Details</h4>
+                            </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* EPF Expense */}
                                 <div>
-                                    <label htmlFor="expense" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="expense" className="block text-sm font-semibold text-gray-700 mb-2">
                                         EPF Expense (LKR) <span className="text-red-500">*</span>
                                     </label>
-                                    <input
-                                        type="text"
-                                        id="expense"
-                                        name="expense"
-                                        value={formData.expense}
-                                        onChange={handleInputChange}
-                                        className={`w-full px-4 py-3 rounded-lg border transition-colors duration-200 focus:outline-none focus:ring-2 ${errors.expense
-                                            ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                                            : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                                            }`}
-                                        placeholder="Enter EPF expense amount"
-                                        disabled={loading}
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            id="expense"
+                                            name="expense"
+                                            value={formData.expense}
+                                            onChange={handleInputChange}
+                                            className={`w-full px-4 py-3 pl-12 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-4 ${errors.expense
+                                                ? 'border-red-300 focus:ring-red-100 focus:border-red-500 bg-red-50'
+                                                : 'border-gray-300 focus:ring-emerald-100 focus:border-emerald-500 bg-white'
+                                                }`}
+                                            placeholder="Enter EPF expense amount"
+                                            disabled={loading}
+                                        />
+                                        <DollarSign className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    </div>
                                     {errors.expense && (
-                                        <p className="mt-2 text-sm text-red-600 flex items-center space-x-1">
-                                            <AlertCircle className="w-4 h-4" />
-                                            <span>{errors.expense}</span>
-                                        </p>
+                                        <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                            <p className="text-sm text-red-700 flex items-center space-x-2">
+                                                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                                                <span>{errors.expense}</span>
+                                            </p>
+                                        </div>
                                     )}
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        Maximum amount: LKR 1,000,000 (up to 2 decimal places)
-                                    </p>
+
+                                    {/* Dynamic help text based on selected range */}
+                                    <div className="mt-3 p-3 bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg border border-gray-200">
+                                        <div className="text-sm text-gray-700">
+                                            {formData.selectedRange ? (
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center space-x-2">
+                                                        <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                                        <span className="font-medium">Selected range limit: LKR {epfRanges.find(r => r.name === formData.selectedRange)?.maxValue.toLocaleString() || '0'}</span>
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 ml-4">Maximum amount: LKR 1,000,000 (up to 2 decimal places)</div>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center space-x-2">
+                                                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                                        <span className="font-medium">No range selected - Maximum: LKR {maxEpf.toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 ml-4">Overall limit: LKR 1,000,000 (up to 2 decimal places)</div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Year - Read only, set to current year */}
                                 <div>
-                                    <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="year" className="block text-sm font-semibold text-gray-700 mb-2">
                                         Year
                                     </label>
-                                    <input
-                                        type="text"
-                                        id="year"
-                                        name="year"
-                                        value={formData.year}
-                                        className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-600 cursor-not-allowed"
-                                        disabled={true}
-                                        readOnly
-                                    />
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        EPF records are created for the current year ({currentYear})
-                                    </p>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            id="year"
+                                            name="year"
+                                            value={formData.year}
+                                            className="w-full px-4 py-3 pl-12 rounded-xl border-2 border-gray-300 bg-gradient-to-r from-gray-50 to-slate-50 text-gray-600 cursor-not-allowed"
+                                            disabled={true}
+                                            readOnly
+                                        />
+                                        <Calendar className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    </div>
+                                    <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
+                                        <p className="text-sm text-blue-700">
+                                            EPF records are created for the current year ({currentYear})
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Form Actions */}
-                        <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
+                        <div className="flex items-center justify-end space-x-4 pt-6">
                             <button
                                 type="button"
                                 onClick={handleReset}
-                                className="px-6 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50"
+                                className="px-8 py-3 text-gray-700 bg-gradient-to-r from-gray-100 to-slate-100 hover:from-gray-200 hover:to-slate-200 rounded-xl font-semibold transition-all duration-200 disabled:opacity-50 border border-gray-300 hover:border-gray-400"
                                 disabled={loading}
                             >
                                 Reset
                             </button>
                             <button
                                 type="submit"
-                                disabled={loading || !formData.user || !formData.expense || Object.keys(errors).length > 0}
-                                className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                                onClick={handleSubmit}
+                                disabled={loading || !isFormValid()}
+                                className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl font-semibold focus:outline-none focus:ring-4 focus:ring-emerald-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-3 shadow-lg hover:shadow-xl transform hover:scale-105"
                             >
                                 {loading ? (
                                     <>
-                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                         <span>Creating...</span>
                                     </>
                                 ) : (
                                     <>
-                                        <Save className="w-4 h-4" />
+                                        <Save className="w-5 h-5" />
                                         <span>Create EPF Record</span>
                                     </>
                                 )}
@@ -533,18 +874,51 @@ const AddEpfForm = ({ onBack }) => {
                 </div>
 
                 {/* Help Text */}
-                <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-start space-x-3">
-                        <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                        <div className="text-sm text-blue-800">
-                            <p className="font-medium mb-1">EPF Record Guidelines:</p>
-                            <ul className="list-disc list-inside space-y-1 text-blue-700">
-                                <li><strong>Employee Selection:</strong> Search by EPF number, name, or department</li>
-                                <li><strong>EPF Expense:</strong> Must be a positive number up to LKR 1,000,000 with maximum 2 decimal places</li>
-                                <li><strong>Year:</strong> Automatically set to current year ({currentYear})</li>
-                                <li><strong>Current Expense:</strong> Shows existing EPF expense for selected employee and year</li>
-                                <li>All fields marked with <span className="text-red-500">*</span> are required</li>
-                            </ul>
+                <div className="mt-6 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 shadow-sm">
+                    <div className="flex items-start space-x-4">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                            <AlertCircle className="w-6 h-6 text-blue-600 flex-shrink-0" />
+                        </div>
+                        <div className="text-sm text-blue-800 flex-1">
+                            <p className="font-semibold text-lg mb-3 text-blue-900">EPF Record Guidelines</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <ul className="space-y-2 text-blue-700">
+                                    <li className="flex items-start space-x-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+                                        <span><strong>Employee Selection:</strong> Search by EPF number or name only</span>
+                                    </li>
+                                    <li className="flex items-start space-x-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+                                        <span><strong>Range Selection:</strong> Optional - select a range to apply expense limits</span>
+                                    </li>
+                                    <li className="flex items-start space-x-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+                                        <span><strong>EPF Expense:</strong> Must be a positive number with maximum 2 decimal places</span>
+                                    </li>
+                                    <li className="flex items-start space-x-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+                                        <span><strong>Range Limits:</strong> When selected, expense cannot exceed the range's maximum value</span>
+                                    </li>
+                                </ul>
+                                <ul className="space-y-2 text-blue-700">
+                                    <li className="flex items-start space-x-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+                                        <span><strong>Overall Limits:</strong> Maximum EPF expense is LKR {maxEpf.toLocaleString()}, system limit is LKR 1,000,000</span>
+                                    </li>
+                                    <li className="flex items-start space-x-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+                                        <span><strong>Year:</strong> Automatically set to current year ({currentYear})</span>
+                                    </li>
+                                    <li className="flex items-start space-x-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+                                        <span><strong>Employee History:</strong> View existing EPF expenses and range breakdowns</span>
+                                    </li>
+                                    <li className="flex items-start space-x-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-2 flex-shrink-0"></div>
+                                        <span>All fields marked with <span className="text-red-600 font-semibold">*</span> are required</span>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
