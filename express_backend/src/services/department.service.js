@@ -62,11 +62,11 @@ class DepartmentService {
    */
   async getAllDepartments(query = {}) {
     const baseUrl = process.env.EXPRESS_URL || 'http://localhost:5000';
-    const { search, page = 1, limit = 10, ...filters } = query;
+    const { search, ...filters } = query;
 
     const mongoQuery = { ...filters };
 
-    // Search by department name or description (case-insensitive)
+    // Case-insensitive search by name or description
     if (search) {
       const regex = new RegExp(search, 'i');
       mongoQuery.$or = [
@@ -75,26 +75,14 @@ class DepartmentService {
       ];
     }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const [departments, count] = await Promise.all([
-      Department.find(mongoQuery)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(parseInt(limit)),
-      Department.countDocuments(mongoQuery)
-    ]);
+    const departments = await Department.find(mongoQuery).sort({ createdAt: -1 });
 
     return {
       success: true,
-      data: departments,
-      pagination: {
-        total: count,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(count / limit)
-      }
+      data: departments
     };
   }
+
 
 
   /**
