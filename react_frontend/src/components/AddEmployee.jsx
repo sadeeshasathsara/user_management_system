@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Save, ArrowLeft, AlertCircle, CheckCircle, X, Plus, Trash2, Upload, Image } from 'lucide-react';
+import { User, Save, ArrowLeft, AlertCircle, CheckCircle, X, Plus, Trash2, Upload, Image, Search } from 'lucide-react';
 import PhoneInput from 'react-phone-input-2';
 import { createEmployeeApi } from '../apis/employee.api';
 import { fetchDepartmentsApi } from '../apis/department.api';
@@ -21,28 +21,59 @@ const AddEmployeeForm = ({ onBack }) => {
         maritalStatus: 'Unmarried',
         spouseName: '',
         parents: [],
+        spouseParents: [],
         children: [],
         contactNumber: ''
     });
 
     const [departments, setDepartments] = useState([]);
+    const [filteredDepartments, setFilteredDepartments] = useState([]);
+    const [departmentSearch, setDepartmentSearch] = useState('');
+    const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
-    const [notification, setNotification] = useState(null);
+    const [toast, setToast] = useState(null);
 
-    // Mock departments data - replace with actual API call
+    // Toast notification function
+    const showToast = (type, message) => {
+        setToast({ type, message });
+        setTimeout(() => setToast(null), 4000);
+    };
+
+    // Fetch departments
     useEffect(() => {
-        // Simulate API call to fetch departments
         const fetchDepartments = async () => {
             try {
-                // Replace with actual API endpoint
                 const response = await fetchDepartmentsApi();
                 setDepartments(response.data);
+                setFilteredDepartments(response.data);
             } catch (error) {
-                showNotification('error', 'Failed to fetch departments');
+                showToast('error', 'Failed to fetch departments');
             }
         };
         fetchDepartments();
+    }, []);
+
+    // Filter departments based on search
+    useEffect(() => {
+        if (departmentSearch) {
+            const filtered = departments.filter(dept =>
+                dept.name.toLowerCase().includes(departmentSearch.toLowerCase())
+            );
+            setFilteredDepartments(filtered);
+        } else {
+            setFilteredDepartments(departments);
+        }
+    }, [departmentSearch, departments]);
+
+    // Initialize parents array when component mounts
+    useEffect(() => {
+        if (formData.parents.length === 0) {
+            setFormData(prev => ({
+                ...prev,
+                parents: [{ name: '', relationship: '', contactNumber: '' }]
+            }));
+        }
     }, []);
 
     // Real-time validation functions
@@ -73,7 +104,6 @@ const AddEmployeeForm = ({ onBack }) => {
             if (digits.length !== 11) {
                 return 'Invalid Sri Lankan number. Should be exactly 9 digits after country code (947xxxxxxxx)';
             }
-            // Check if the number after 94 is valid (should start with 7 and be exactly 9 digits)
             const localNumber = digits.substring(2);
             if (!localNumber.startsWith('7') || localNumber.length !== 9) {
                 return 'Invalid Sri Lankan mobile number. Must be 9 digits starting with 7 after country code';
@@ -82,7 +112,6 @@ const AddEmployeeForm = ({ onBack }) => {
             if (digits.length !== 10) {
                 return 'Invalid Sri Lankan number. Should be 10 digits starting with 0';
             }
-            // Check if it's a valid mobile number (07xxxxxxxx)
             if (!digits.startsWith('07')) {
                 return 'Invalid Sri Lankan mobile number. Should start with 07';
             }
@@ -95,7 +124,6 @@ const AddEmployeeForm = ({ onBack }) => {
     const validateNicNumber = (value) => {
         if (!value) return '';
 
-        // Remove any existing 'v' or 'V' and check
         const cleanValue = value.toLowerCase().replace('v', '');
 
         if (cleanValue.length === 9) {
@@ -162,20 +190,16 @@ const AddEmployeeForm = ({ onBack }) => {
         let processedValue = value;
         let error = '';
 
-        // Apply specific validations and formatting
         switch (name) {
             case 'epfNumber':
-                // Only allow digits and limit to 4
                 processedValue = value.replace(/\D/g, '').slice(0, 4);
                 error = validateEpfNumber(processedValue);
                 break;
             case 'name':
-                // Only allow letters and spaces
                 processedValue = value.replace(/[^a-zA-Z\s]/g, '');
                 error = validateName(processedValue);
                 break;
             case 'nicNumber':
-                // Handle NIC formatting
                 let cleanNic = value.replace(/[^0-9vV]/g, '');
                 if (cleanNic.length <= 9 && !cleanNic.toLowerCase().includes('v')) {
                     processedValue = cleanNic;
@@ -210,7 +234,6 @@ const AddEmployeeForm = ({ onBack }) => {
             [name]: processedValue
         }));
 
-        // Update errors
         setErrors(prev => ({
             ...prev,
             [name]: error
@@ -218,18 +241,15 @@ const AddEmployeeForm = ({ onBack }) => {
     };
 
     const handleContactNumberChange = (phone) => {
-        // Limit the phone number to proper Sri Lankan format
         const digits = phone.replace(/\D/g, '');
         let limitedPhone = phone;
 
         if (digits.startsWith('94')) {
-            // For country code format, limit to 94 + 9 digits = 11 total
             if (digits.length > 11) {
                 const limitedDigits = digits.substring(0, 11);
                 limitedPhone = phone.startsWith('+') ? '+' + limitedDigits : limitedDigits;
             }
         } else if (digits.startsWith('0')) {
-            // For local format, limit to 10 digits
             if (digits.length > 10) {
                 limitedPhone = digits.substring(0, 10);
             }
@@ -263,13 +283,34 @@ const AddEmployeeForm = ({ onBack }) => {
         }
     };
 
+    const handleDepartmentSearch = (e) => {
+        const value = e.target.value;
+        setDepartmentSearch(value);
+        setShowDepartmentDropdown(true);
+
+        // Clear the selected department if search doesn't match
+        const matchingDept = departments.find(dept =>
+            dept.name.toLowerCase() === value.toLowerCase()
+        );
+        if (!matchingDept) {
+            setFormData(prev => ({ ...prev, department: '' }));
+        }
+    };
+
+    const handleDepartmentSelect = (dept) => {
+        setFormData(prev => ({ ...prev, department: dept._id }));
+        setDepartmentSearch(dept.name);
+        setShowDepartmentDropdown(false);
+        setErrors(prev => ({ ...prev, department: '' }));
+    };
+
     const handleMaritalStatusChange = (e) => {
         const status = e.target.value;
         setFormData(prev => ({
             ...prev,
             maritalStatus: status,
             spouseName: status === 'Married' ? prev.spouseName : '',
-            parents: status === 'Unmarried' ? (prev.parents.length === 0 ? [{ name: '', relationship: '', contactNumber: '' }] : prev.parents) : [],
+            spouseParents: status === 'Married' ? (prev.spouseParents.length === 0 ? [{ name: '', relationship: '', contactNumber: '' }] : prev.spouseParents) : [],
             children: status === 'Married' ? prev.children : []
         }));
 
@@ -278,19 +319,17 @@ const AddEmployeeForm = ({ onBack }) => {
             const newErrors = { ...prev };
             if (status === 'Unmarried') {
                 delete newErrors.spouseName;
-            } else {
-                delete newErrors.parents;
-                prev.parents?.forEach((_, index) => {
-                    delete newErrors[`parent_${index}_name`];
-                    delete newErrors[`parent_${index}_relationship`];
-                    delete newErrors[`parent_${index}_contactNumber`];
+                prev.spouseParents?.forEach((_, index) => {
+                    delete newErrors[`spouseParent_${index}_name`];
+                    delete newErrors[`spouseParent_${index}_relationship`];
+                    delete newErrors[`spouseParent_${index}_contactNumber`];
                 });
             }
             return newErrors;
         });
     };
 
-    const handleParentChange = (index, field, value) => {
+    const handleParentChange = (index, field, value, isSpouseParent = false) => {
         let processedValue = value;
         let error = '';
 
@@ -300,11 +339,9 @@ const AddEmployeeForm = ({ onBack }) => {
                 error = 'Name must be at least 2 characters';
             }
         } else if (field === 'contactNumber') {
-            // Limit the phone number to proper Sri Lankan format for parents too
             const digits = value.replace(/\D/g, '');
 
             if (digits.startsWith('94')) {
-                // For country code format, limit to 94 + 9 digits = 11 total
                 if (digits.length > 11) {
                     const limitedDigits = digits.substring(0, 11);
                     processedValue = value.startsWith('+') ? '+' + limitedDigits : limitedDigits;
@@ -312,7 +349,6 @@ const AddEmployeeForm = ({ onBack }) => {
                     processedValue = value;
                 }
             } else if (digits.startsWith('0')) {
-                // For local format, limit to 10 digits
                 if (digits.length > 10) {
                     processedValue = digits.substring(0, 10);
                 } else {
@@ -325,36 +361,39 @@ const AddEmployeeForm = ({ onBack }) => {
             error = validateSriLankanNumber(processedValue);
         }
 
-        const updatedParents = [...formData.parents];
+        const parentType = isSpouseParent ? 'spouseParents' : 'parents';
+        const updatedParents = [...formData[parentType]];
         updatedParents[index] = { ...updatedParents[index], [field]: processedValue };
-        setFormData(prev => ({ ...prev, parents: updatedParents }));
+        setFormData(prev => ({ ...prev, [parentType]: updatedParents }));
 
-        // Update error for this specific field
+        const errorKey = isSpouseParent ? `spouseParent_${index}_${field}` : `parent_${index}_${field}`;
         setErrors(prev => ({
             ...prev,
-            [`parent_${index}_${field}`]: error
+            [errorKey]: error
         }));
     };
 
-    const addParent = () => {
+    const addParent = (isSpouseParent = false) => {
+        const parentType = isSpouseParent ? 'spouseParents' : 'parents';
         setFormData(prev => ({
             ...prev,
-            parents: [...prev.parents, { name: '', relationship: '', contactNumber: '' }]
+            [parentType]: [...prev[parentType], { name: '', relationship: '', contactNumber: '' }]
         }));
     };
 
-    const removeParent = (index) => {
+    const removeParent = (index, isSpouseParent = false) => {
+        const parentType = isSpouseParent ? 'spouseParents' : 'parents';
         setFormData(prev => ({
             ...prev,
-            parents: prev.parents.filter((_, i) => i !== index)
+            [parentType]: prev[parentType].filter((_, i) => i !== index)
         }));
 
-        // Clear errors for removed parent
+        const prefix = isSpouseParent ? 'spouseParent' : 'parent';
         setErrors(prev => {
             const newErrors = { ...prev };
-            delete newErrors[`parent_${index}_name`];
-            delete newErrors[`parent_${index}_relationship`];
-            delete newErrors[`parent_${index}_contactNumber`];
+            delete newErrors[`${prefix}_${index}_name`];
+            delete newErrors[`${prefix}_${index}_relationship`];
+            delete newErrors[`${prefix}_${index}_contactNumber`];
             return newErrors;
         });
     };
@@ -388,7 +427,7 @@ const AddEmployeeForm = ({ onBack }) => {
     const validateForm = () => {
         const newErrors = {};
 
-        // Required fields with real-time validation
+        // Required fields validation
         if (!formData.epfNumber.trim()) {
             newErrors.epfNumber = 'EPF Number is required';
         } else if (formData.epfNumber.length !== 4) {
@@ -430,29 +469,49 @@ const AddEmployeeForm = ({ onBack }) => {
             newErrors.email = 'Please enter a valid email address';
         }
 
+        // Parents validation (required for everyone)
+        if (formData.parents.length === 0) {
+            newErrors.parents = 'At least one parent/guardian is required';
+        } else {
+            formData.parents.forEach((parent, index) => {
+                if (!parent.name.trim()) {
+                    newErrors[`parent_${index}_name`] = 'Parent name is required';
+                }
+                if (!parent.relationship) {
+                    newErrors[`parent_${index}_relationship`] = 'Relationship is required';
+                }
+                // Contact number is optional for parents
+                if (parent.contactNumber.trim()) {
+                    const phoneError = validateSriLankanNumber(parent.contactNumber);
+                    if (phoneError) {
+                        newErrors[`parent_${index}_contactNumber`] = phoneError;
+                    }
+                }
+            });
+        }
+
         // Marital status dependent validations
         if (formData.maritalStatus === 'Married') {
             if (!formData.spouseName.trim()) {
                 newErrors.spouseName = 'Spouse name is required for married employees';
             }
-        } else {
-            if (formData.parents.length === 0) {
-                newErrors.parents = 'At least one parent/guardian is required for unmarried employees';
+
+            // Spouse parents validation
+            if (formData.spouseParents.length === 0) {
+                newErrors.spouseParents = 'At least one spouse parent/guardian is required';
             } else {
-                // Validate each parent
-                formData.parents.forEach((parent, index) => {
+                formData.spouseParents.forEach((parent, index) => {
                     if (!parent.name.trim()) {
-                        newErrors[`parent_${index}_name`] = 'Parent name is required';
+                        newErrors[`spouseParent_${index}_name`] = 'Spouse parent name is required';
                     }
                     if (!parent.relationship) {
-                        newErrors[`parent_${index}_relationship`] = 'Relationship is required';
+                        newErrors[`spouseParent_${index}_relationship`] = 'Relationship is required';
                     }
-                    if (!parent.contactNumber.trim()) {
-                        newErrors[`parent_${index}_contactNumber`] = 'Contact number is required';
-                    } else {
+                    // Contact number is optional for spouse parents
+                    if (parent.contactNumber.trim()) {
                         const phoneError = validateSriLankanNumber(parent.contactNumber);
                         if (phoneError) {
-                            newErrors[`parent_${index}_contactNumber`] = phoneError;
+                            newErrors[`spouseParent_${index}_contactNumber`] = phoneError;
                         }
                     }
                 });
@@ -461,11 +520,6 @@ const AddEmployeeForm = ({ onBack }) => {
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
-    };
-
-    const showNotification = (type, message) => {
-        setNotification({ type, message });
-        setTimeout(() => setNotification(null), 5000);
     };
 
     const handleSubmit = async (e) => {
@@ -488,16 +542,14 @@ const AddEmployeeForm = ({ onBack }) => {
 
             console.log(submitData);
 
-
-            // Call Axios API
             const response = await createEmployeeApi(submitData);
 
-            showNotification('success', 'Employee created successfully!');
+            showToast('success', `Employee "${formData.name}" created successfully!`);
             handleReset();
         } catch (err) {
             console.error('Error creating employee:', err);
             const msg = err.message || 'Failed to create employee';
-            showNotification('error', msg);
+            showToast('error', msg);
         } finally {
             setLoading(false);
         }
@@ -519,35 +571,41 @@ const AddEmployeeForm = ({ onBack }) => {
             profilePicture: null,
             maritalStatus: 'Unmarried',
             spouseName: '',
-            parents: [],
+            parents: [{ name: '', relationship: '', contactNumber: '' }],
+            spouseParents: [],
             children: [],
             contactNumber: ''
         });
         setErrors({});
-        setNotification(null);
+        setToast(null);
+        setDepartmentSearch('');
+        setShowDepartmentDropdown(false);
     };
 
     return (
         <div className="">
             <div className="w-full mx-auto px-4">
-                {/* Notification */}
-                {notification && (
-                    <div className={`mb-6 p-4 rounded-lg border flex items-center space-x-3 ${notification.type === 'success'
-                        ? 'bg-green-50 border-green-200 text-green-800'
-                        : 'bg-red-50 border-red-200 text-red-800'
+                {/* Toast Notification */}
+                {toast && (
+                    <div className={`fixed top-4 right-4 z-50 max-w-sm w-full transform transition-all duration-300 ease-in-out ${toast ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
                         }`}>
-                        {notification.type === 'success' ? (
-                            <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                        ) : (
-                            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                        )}
-                        <span className="flex-1">{notification.message}</span>
-                        <button
-                            onClick={() => setNotification(null)}
-                            className="text-gray-400 hover:text-gray-600"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
+                        <div className={`p-4 rounded-lg shadow-lg border flex items-center space-x-3 ${toast.type === 'success'
+                                ? 'bg-green-50 border-green-200 text-green-800'
+                                : 'bg-red-50 border-red-200 text-red-800'
+                            }`}>
+                            {toast.type === 'success' ? (
+                                <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                            ) : (
+                                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                            )}
+                            <span className="flex-1 text-sm font-medium">{toast.message}</span>
+                            <button
+                                onClick={() => setToast(null)}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
                 )}
 
@@ -808,27 +866,41 @@ const AddEmployeeForm = ({ onBack }) => {
                                     )}
                                 </div>
 
-                                {/* Department */}
-                                <div>
+                                {/* Department with Search */}
+                                <div className="relative">
                                     <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-2">
                                         Department <span className="text-red-500">*</span>
                                     </label>
-                                    <select
-                                        id="department"
-                                        name="department"
-                                        value={formData.department}
-                                        onChange={handleInputChange}
-                                        className={`w-full px-4 py-3 rounded-lg border transition-colors duration-200 focus:outline-none focus:ring-2 ${errors.department
-                                            ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                                            : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                                            }`}
-                                        disabled={loading}
-                                    >
-                                        <option value="">Select department</option>
-                                        {departments.map(dept => (
-                                            <option key={dept._id} value={dept._id}>{dept.name}</option>
-                                        ))}
-                                    </select>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={departmentSearch}
+                                            onChange={handleDepartmentSearch}
+                                            onFocus={() => setShowDepartmentDropdown(true)}
+                                            className={`w-full px-4 py-3 pr-10 rounded-lg border transition-colors duration-200 focus:outline-none focus:ring-2 ${errors.department
+                                                ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                                                : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                                }`}
+                                            placeholder="Search departments..."
+                                            disabled={loading}
+                                        />
+                                        <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+
+                                        {showDepartmentDropdown && filteredDepartments.length > 0 && (
+                                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                                {filteredDepartments.map(dept => (
+                                                    <button
+                                                        key={dept._id}
+                                                        type="button"
+                                                        onClick={() => handleDepartmentSelect(dept)}
+                                                        className="w-full text-left px-4 py-3 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none border-b border-gray-100 last:border-b-0"
+                                                    >
+                                                        {dept.name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                     {errors.department && (
                                         <p className="mt-2 text-sm text-red-600 flex items-center space-x-1">
                                             <AlertCircle className="w-4 h-4" />
@@ -969,32 +1041,143 @@ const AddEmployeeForm = ({ onBack }) => {
                                 </div>
                             )}
 
-                            {/* Parents/Guardians (if unmarried) */}
-                            {formData.maritalStatus === 'Unmarried' && (
+                            {/* Employee Parents/Guardians */}
+                            <div className="mb-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Employee Parents/Guardians <span className="text-red-500">*</span>
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={() => addParent(false)}
+                                        className="flex items-center space-x-1 px-3 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors duration-200"
+                                        disabled={loading}
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        <span>Add Parent/Guardian</span>
+                                    </button>
+                                </div>
+
+                                {formData.parents.map((parent, index) => (
+                                    <div key={index} className="mb-4 p-4 bg-blue-50 rounded-lg">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h4 className="text-sm font-medium text-gray-700">Employee Parent/Guardian {index + 1}</h4>
+                                            {formData.parents.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeParent(index, false)}
+                                                    className="text-red-500 hover:text-red-700"
+                                                    disabled={loading}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Name (letters only)"
+                                                    value={parent.name}
+                                                    onChange={(e) => handleParentChange(index, 'name', e.target.value, false)}
+                                                    className={`w-full px-3 py-2 rounded-lg border transition-colors duration-200 focus:outline-none focus:ring-2 ${errors[`parent_${index}_name`]
+                                                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                                                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                                        }`}
+                                                    disabled={loading}
+                                                />
+                                                {errors[`parent_${index}_name`] && (
+                                                    <p className="mt-1 text-xs text-red-600">{errors[`parent_${index}_name`]}</p>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <select
+                                                    value={parent.relationship}
+                                                    onChange={(e) => handleParentChange(index, 'relationship', e.target.value, false)}
+                                                    className={`w-full px-3 py-2 rounded-lg border transition-colors duration-200 focus:outline-none focus:ring-2 ${errors[`parent_${index}_relationship`]
+                                                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                                                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                                        }`}
+                                                    disabled={loading}
+                                                >
+                                                    <option value="">Select relationship</option>
+                                                    <option value="Father">Father</option>
+                                                    <option value="Mother">Mother</option>
+                                                    <option value="Guardian">Guardian</option>
+                                                </select>
+                                                {errors[`parent_${index}_relationship`] && (
+                                                    <p className="mt-1 text-xs text-red-600">{errors[`parent_${index}_relationship`]}</p>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <div className={`relative rounded-lg border transition-colors duration-200 ${errors[`parent_${index}_contactNumber`]
+                                                    ? 'border-red-300 focus-within:ring-red-500 focus-within:border-red-500'
+                                                    : 'border-gray-300 focus-within:ring-blue-500 focus-within:border-blue-500'
+                                                    } focus-within:ring-2`}>
+                                                    <PhoneInput
+                                                        country={'lk'}
+                                                        value={parent.contactNumber}
+                                                        onChange={(phone) => handleParentChange(index, 'contactNumber', phone, false)}
+                                                        inputProps={{
+                                                            name: `parent_${index}_contactNumber`,
+                                                            required: true,
+                                                            disabled: loading,
+                                                            placeholder: 'Contact number',
+                                                            maxLength: 15
+                                                        }}
+                                                        onlyCountries={['lk']}
+                                                        containerClass="w-full"
+                                                        inputClass="w-full"
+                                                        buttonClass="border-0"
+                                                        dropdownClass="text-sm"
+                                                        enableSearch={false}
+                                                    />
+                                                </div>
+                                                {errors[`parent_${index}_contactNumber`] && (
+                                                    <p className="mt-1 text-xs text-red-600">{errors[`parent_${index}_contactNumber`]}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {errors.parents && (
+                                    <p className="mt-2 text-sm text-red-600 flex items-center space-x-1">
+                                        <AlertCircle className="w-4 h-4" />
+                                        <span>{errors.parents}</span>
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Spouse Parents (only for married) */}
+                            {formData.maritalStatus === 'Married' && (
                                 <div className="mb-6">
                                     <div className="flex items-center justify-between mb-4">
                                         <label className="block text-sm font-medium text-gray-700">
-                                            Parents/Guardians <span className="text-red-500">*</span>
+                                            Spouse Parents/Guardians <span className="text-red-500">*</span>
                                         </label>
                                         <button
                                             type="button"
-                                            onClick={addParent}
-                                            className="flex items-center space-x-1 px-3 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors duration-200"
+                                            onClick={() => addParent(true)}
+                                            className="flex items-center space-x-1 px-3 py-2 text-sm bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors duration-200"
                                             disabled={loading}
                                         >
                                             <Plus className="w-4 h-4" />
-                                            <span>Add Parent/Guardian</span>
+                                            <span>Add Spouse Parent/Guardian</span>
                                         </button>
                                     </div>
 
-                                    {formData.parents.map((parent, index) => (
-                                        <div key={index} className="mb-4 p-4 bg-gray-50 rounded-lg">
+                                    {formData.spouseParents.map((parent, index) => (
+                                        <div key={index} className="mb-4 p-4 bg-purple-50 rounded-lg">
                                             <div className="flex items-center justify-between mb-3">
-                                                <h4 className="text-sm font-medium text-gray-700">Parent/Guardian {index + 1}</h4>
-                                                {formData.parents.length > 1 && (
+                                                <h4 className="text-sm font-medium text-gray-700">Spouse Parent/Guardian {index + 1}</h4>
+                                                {formData.spouseParents.length > 1 && (
                                                     <button
                                                         type="button"
-                                                        onClick={() => removeParent(index)}
+                                                        onClick={() => removeParent(index, true)}
                                                         className="text-red-500 hover:text-red-700"
                                                         disabled={loading}
                                                     >
@@ -1009,49 +1192,49 @@ const AddEmployeeForm = ({ onBack }) => {
                                                         type="text"
                                                         placeholder="Name (letters only)"
                                                         value={parent.name}
-                                                        onChange={(e) => handleParentChange(index, 'name', e.target.value)}
-                                                        className={`w-full px-3 py-2 rounded-lg border transition-colors duration-200 focus:outline-none focus:ring-2 ${errors[`parent_${index}_name`]
+                                                        onChange={(e) => handleParentChange(index, 'name', e.target.value, true)}
+                                                        className={`w-full px-3 py-2 rounded-lg border transition-colors duration-200 focus:outline-none focus:ring-2 ${errors[`spouseParent_${index}_name`]
                                                             ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                                                             : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                                                             }`}
                                                         disabled={loading}
                                                     />
-                                                    {errors[`parent_${index}_name`] && (
-                                                        <p className="mt-1 text-xs text-red-600">{errors[`parent_${index}_name`]}</p>
+                                                    {errors[`spouseParent_${index}_name`] && (
+                                                        <p className="mt-1 text-xs text-red-600">{errors[`spouseParent_${index}_name`]}</p>
                                                     )}
                                                 </div>
 
                                                 <div>
                                                     <select
                                                         value={parent.relationship}
-                                                        onChange={(e) => handleParentChange(index, 'relationship', e.target.value)}
-                                                        className={`w-full px-3 py-2 rounded-lg border transition-colors duration-200 focus:outline-none focus:ring-2 ${errors[`parent_${index}_relationship`]
+                                                        onChange={(e) => handleParentChange(index, 'relationship', e.target.value, true)}
+                                                        className={`w-full px-3 py-2 rounded-lg border transition-colors duration-200 focus:outline-none focus:ring-2 ${errors[`spouseParent_${index}_relationship`]
                                                             ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                                                             : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                                                             }`}
                                                         disabled={loading}
                                                     >
                                                         <option value="">Select relationship</option>
-                                                        <option value="Father">Father</option>
-                                                        <option value="Mother">Mother</option>
+                                                        <option value="Father-in-law">Father-in-law</option>
+                                                        <option value="Mother-in-law">Mother-in-law</option>
                                                         <option value="Guardian">Guardian</option>
                                                     </select>
-                                                    {errors[`parent_${index}_relationship`] && (
-                                                        <p className="mt-1 text-xs text-red-600">{errors[`parent_${index}_relationship`]}</p>
+                                                    {errors[`spouseParent_${index}_relationship`] && (
+                                                        <p className="mt-1 text-xs text-red-600">{errors[`spouseParent_${index}_relationship`]}</p>
                                                     )}
                                                 </div>
 
                                                 <div>
-                                                    <div className={`relative rounded-lg border transition-colors duration-200 ${errors[`parent_${index}_contactNumber`]
+                                                    <div className={`relative rounded-lg border transition-colors duration-200 ${errors[`spouseParent_${index}_contactNumber`]
                                                         ? 'border-red-300 focus-within:ring-red-500 focus-within:border-red-500'
                                                         : 'border-gray-300 focus-within:ring-blue-500 focus-within:border-blue-500'
                                                         } focus-within:ring-2`}>
                                                         <PhoneInput
                                                             country={'lk'}
                                                             value={parent.contactNumber}
-                                                            onChange={(phone) => handleParentChange(index, 'contactNumber', phone)}
+                                                            onChange={(phone) => handleParentChange(index, 'contactNumber', phone, true)}
                                                             inputProps={{
-                                                                name: `parent_${index}_contactNumber`,
+                                                                name: `spouseParent_${index}_contactNumber`,
                                                                 required: true,
                                                                 disabled: loading,
                                                                 placeholder: 'Contact number',
@@ -1065,18 +1248,18 @@ const AddEmployeeForm = ({ onBack }) => {
                                                             enableSearch={false}
                                                         />
                                                     </div>
-                                                    {errors[`parent_${index}_contactNumber`] && (
-                                                        <p className="mt-1 text-xs text-red-600">{errors[`parent_${index}_contactNumber`]}</p>
+                                                    {errors[`spouseParent_${index}_contactNumber`] && (
+                                                        <p className="mt-1 text-xs text-red-600">{errors[`spouseParent_${index}_contactNumber`]}</p>
                                                     )}
                                                 </div>
                                             </div>
                                         </div>
                                     ))}
 
-                                    {errors.parents && (
+                                    {errors.spouseParents && (
                                         <p className="mt-2 text-sm text-red-600 flex items-center space-x-1">
                                             <AlertCircle className="w-4 h-4" />
-                                            <span>{errors.parents}</span>
+                                            <span>{errors.spouseParents}</span>
                                         </p>
                                     )}
                                 </div>
@@ -1228,7 +1411,7 @@ const AddEmployeeForm = ({ onBack }) => {
                         </div>
 
                         {/* Form Actions */}
-                        <div className="flex items-center justify-end space-x-4 ">
+                        <div className="flex items-center justify-end space-x-4">
                             <button
                                 type="button"
                                 onClick={handleReset}
@@ -1239,7 +1422,6 @@ const AddEmployeeForm = ({ onBack }) => {
                             </button>
                             <button
                                 type="submit"
-                                // Replace the current disabled condition with:
                                 disabled={loading ||
                                     !formData.epfNumber.trim() ||
                                     !formData.name.trim() ||
@@ -1273,11 +1455,15 @@ const AddEmployeeForm = ({ onBack }) => {
                             <ul className="list-disc list-inside space-y-1 text-blue-700">
                                 <li><strong>EPF Number:</strong> Must be exactly 4 digits</li>
                                 <li><strong>Name:</strong> Only letters and spaces allowed, minimum 2 characters</li>
-                                <li><strong>Contact Number:</strong> Sri Lankan numbers only - 10 digits starting with 07 OR exactly 9 digits after country code 94 (947xxxxxxxx)</li>
+                                <li><strong>Contact Number:</strong> Only employee's contact number is required - Sri Lankan numbers only (10 digits starting with 07 OR exactly 9 digits after country code 94)</li>
+                                <li><strong>Parent/Guardian Contact:</strong> Contact numbers for parents and spouse parents are optional but must be valid Sri Lankan numbers if provided</li>
                                 <li><strong>NIC Number:</strong> 9 digits + V (e.g., 273017385V) or 12 digits (e.g., 200527033289)</li>
                                 <li><strong>Date of Birth:</strong> Must be 18-70 years old, no future dates</li>
-                                <li><strong>Marital Status:</strong> Unmarried employees need parent/guardian info, married employees can add spouse and children</li>
-                                <li><strong>Profile Picture:</strong> Upload images up to 5MB or provide URL</li>
+                                <li><strong>Department:</strong> Search and select from available departments</li>
+                                <li><strong>Parents:</strong> All employees must have at least one parent/guardian listed</li>
+                                <li><strong>Married Employees:</strong> Must provide spouse name and spouse parents information</li>
+                                <li><strong>Children:</strong> Optional for married employees with detailed information</li>
+                                <li><strong>Profile Picture:</strong> Upload images up to 5MB</li>
                             </ul>
                         </div>
                     </div>
