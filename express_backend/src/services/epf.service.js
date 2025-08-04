@@ -108,15 +108,12 @@ export const getEmployeeEpfs = async (query = {}) => {
             .populate("user", "name email")
             .sort({ year: 1 });
 
-        // Add computed fields to each record
         const enrichedRecords = epfRecords.map(record => {
-            // Compute total from regularExpenses
             const regularExpenseTotal = (record.regularExpenses || []).reduce(
                 (sum, exp) => sum + (exp.amount || 0),
                 0
             );
 
-            // Add `expense` to each range
             const rangeExpenses = (record.rangeExpenses || []).map(range => {
                 const rangeExpenseTotal = (range.expenses || []).reduce(
                     (sum, exp) => sum + (exp.amount || 0),
@@ -128,7 +125,6 @@ export const getEmployeeEpfs = async (query = {}) => {
                 };
             });
 
-            // Compute total from rangeExpenses
             const rangeExpenseTotal = rangeExpenses.reduce(
                 (sum, r) => sum + (r.expense || 0),
                 0
@@ -149,19 +145,27 @@ export const getEmployeeEpfs = async (query = {}) => {
             success: true,
             data: enrichedRecords
         };
+
     } catch (err) {
         console.error("Error fetching Employee EPF records:", err);
         return {
             success: false,
-            message: "Internal server error",
-            error: err.message
+            message: "Failed to fetch records.",
+            error: err.message || err
         };
     }
 };
 
 
+
 export const createOrUpdateEmployeeEpf = async (payload) => {
-    const { user, year, rangeExpenses = [], regularExpenses = [] } = payload;
+    const {
+        user,
+        year,
+        rangeExpenses = [],
+        regularExpenses = [],
+        method = "update" // default to replacing behavior
+    } = payload;
 
     const start = new Date(Date.UTC(new Date(year).getFullYear(), 0, 1));
     const end = new Date(Date.UTC(new Date(year).getFullYear() + 1, 0, 1));
@@ -176,29 +180,46 @@ export const createOrUpdateEmployeeEpf = async (payload) => {
             regularExpenses
         });
     } else {
-        // Update regularExpenses
-        if (regularExpenses.length > 0) {
+        if (method === "add") {
+            // Append new regular expenses
             record.regularExpenses.push(...regularExpenses);
-        }
 
-        // Update or merge rangeExpenses
-        for (const newRange of rangeExpenses) {
-            const existingRange = record.rangeExpenses.find(
-                (r) => r.name === newRange.name
-            );
+            // Merge range expenses
+            for (const newRange of rangeExpenses) {
+                const existingRange = record.rangeExpenses.find(r => r.name === newRange.name);
 
-            if (existingRange) {
-                existingRange.expenses.push(...newRange.expenses);
-            } else {
-                record.rangeExpenses.push(newRange);
+                if (existingRange) {
+                    existingRange.expenses.push(...newRange.expenses);
+                } else {
+                    record.rangeExpenses.push(newRange);
+                }
             }
+
+        } else {
+            // Replace regular expenses
+            record.regularExpenses = [...regularExpenses];
+
+            // Replace range expenses
+            for (const newRange of rangeExpenses) {
+                const existingRange = record.rangeExpenses.find(r => r.name === newRange.name);
+
+                if (existingRange) {
+                    existingRange.expenses = [...newRange.expenses];
+                } else {
+                    record.rangeExpenses.push(newRange);
+                }
+            }
+
+            // Remove any old range not in new list
+            const newRangeNames = rangeExpenses.map(r => r.name);
+            record.rangeExpenses = record.rangeExpenses.filter(r => newRangeNames.includes(r.name));
         }
     }
 
     // Calculate total expense
-    const totalRegular = record.regularExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalRegular = record.regularExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
     const totalRange = record.rangeExpenses.reduce(
-        (sum, r) => sum + r.expenses.reduce((s, e) => s + e.amount, 0),
+        (sum, r) => sum + r.expenses.reduce((s, e) => s + (e.amount || 0), 0),
         0
     );
     const totalExpense = totalRegular + totalRange;
@@ -213,15 +234,36 @@ export const createOrUpdateEmployeeEpf = async (payload) => {
     return record;
 };
 
-export const deleteEmployeeEpf = async (id) => {
+
+
+export const deleteEmployeeEpfExpense = async ({ epfId, type, createdAt, rangeName }) => {
     try {
-        const result = await EmployeeEpf.findByIdAndDelete(id);
-        if (!result) {
-            throw new Error("Employee EPF record not found");
+        const epfRecord = await EmployeeEpf.findById(epfId);
+        if (!epfRecord) {
+            throw new Error("EPF record not found");
         }
-        return { success: true, message: "Employee EPF record deleted successfully" };
+
+        if (type === "regular") {
+            epfRecord.regularExpenses = epfRecord.regularExpenses.filter(
+                exp => exp.createdAt.toISOString() !== createdAt
+            );
+        } else if (type === "range") {
+            const range = epfRecord.rangeExpenses.find(r => r.name === rangeName);
+            if (!range) throw new Error("Range not found");
+
+            range.expenses = range.expenses.filter(
+                exp => exp.createdAt.toISOString() !== createdAt
+            );
+        } else {
+            throw new Error("Invalid type: must be 'regular' or 'range'");
+        }
+
+        await epfRecord.save();
+
+        return { success: true, message: "Expense deleted successfully" };
     } catch (err) {
-        console.error("Error deleting Employee EPF record:", err);
-        throw new Error(err.message || "Failed to delete Employee EPF record");
+        console.error("Error deleting EPF expense:", err);
+        throw new Error(err.message || "Failed to delete EPF expense");
     }
-}
+};
+

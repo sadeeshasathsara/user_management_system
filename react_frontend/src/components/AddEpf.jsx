@@ -31,6 +31,14 @@ const AddEpfForm = ({ onBack }) => {
     const [employeeEpfData, setEmployeeEpfData] = useState(null);
     const [employeeEpfLoading, setEmployeeEpfLoading] = useState(false);
 
+    // Helper function to safely get department name
+    const getDepartmentName = (department) => {
+        if (!department) return null;
+        if (typeof department === 'string') return department;
+        if (typeof department === 'object' && department.name) return department.name;
+        return null;
+    };
+
     // Fetch EPF ranges on component mount
     useEffect(() => {
         fetchEpfRanges();
@@ -70,18 +78,52 @@ const AddEpfForm = ({ onBack }) => {
                 year: parseInt(year)
             };
 
-            const response = await getEmpEpf(query);
+            console.log('Fetching EPF data with query:', query); // Debug log
 
-            // Handle the nested API response structure
-            if (response.success && response.data && response.data.success && response.data.data && Array.isArray(response.data.data)) {
-                // Get the first record (should be only one for the user and year)
-                const employeeRecord = response.data.data[0];
-                setEmployeeEpfData(employeeRecord || null);
-            } else {
-                setEmployeeEpfData(null);
+            const response = await getEmpEpf(query);
+            console.log('Full EPF API Response:', response); // Debug log
+
+            // Handle different possible response structures
+            let employeeRecord = null;
+
+            if (response) {
+                // Case 1: Direct success with data array
+                if (response.success && Array.isArray(response.data)) {
+                    console.log('Case 1: Direct data array', response.data);
+                    employeeRecord = response.data.find(record => record.user === userId || record.user?._id === userId) || response.data[0];
+                }
+                // Case 2: Nested success with data.data array
+                else if (response.success && response.data && response.data.success && Array.isArray(response.data.data)) {
+                    console.log('Case 2: Nested data array', response.data.data);
+                    employeeRecord = response.data.data.find(record => record.user === userId || record.user?._id === userId) || response.data.data[0];
+                }
+                // Case 3: Direct array response
+                else if (Array.isArray(response)) {
+                    console.log('Case 3: Direct array response', response);
+                    employeeRecord = response.find(record => record.user === userId || record.user?._id === userId) || response[0];
+                }
+                // Case 4: Single object response
+                else if (response.success && response.data && !Array.isArray(response.data)) {
+                    console.log('Case 4: Single object response', response.data);
+                    employeeRecord = response.data;
+                }
+                // Case 5: Check if response itself is the data
+                else if (response._id || response.user) {
+                    console.log('Case 5: Response is the data object', response);
+                    employeeRecord = response;
+                }
             }
+
+            console.log('Final employee record selected:', employeeRecord);
+            setEmployeeEpfData(employeeRecord);
+
         } catch (error) {
             console.error('Error fetching employee EPF data:', error);
+            console.error('Error details:', {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status
+            });
             setEmployeeEpfData(null);
         } finally {
             setEmployeeEpfLoading(false);
@@ -279,8 +321,19 @@ const AddEpfForm = ({ onBack }) => {
         }
     };
 
+    useEffect(() => {
+        console.log(`Select`);
+        console.log(selectedUser);
+
+    }, [selectedUser])
+
     const handleUserSelect = (user) => {
+        console.log(`User`);
+        console.log(user);
+
         setSelectedUser(user);
+
+
         setFormData(prev => ({
             ...prev,
             user: user._id
@@ -379,7 +432,7 @@ const AddEpfForm = ({ onBack }) => {
 
             console.log(payload);
 
-            const response = await createOrUpdateEmployeeEpf(payload);
+            const response = await createOrUpdateEmployeeEpf(payload, "add");
 
             if (response.success) {
                 showNotification('success', 'EPF record submitted successfully!');
@@ -425,12 +478,23 @@ const AddEpfForm = ({ onBack }) => {
             lg: 'w-6 h-6'
         };
 
-        if (user.profilePicture) {
+        // Check if profilePicture exists and is not null/undefined and doesn't end with '/null'
+        const hasValidProfilePicture = user.profilePicture &&
+            user.profilePicture !== 'null' &&
+            !user.profilePicture.endsWith('/null') &&
+            user.profilePicture.trim() !== '';
+
+        if (hasValidProfilePicture) {
             return (
                 <img
                     src={user.profilePicture}
                     alt={user.name}
                     className={`${sizeClasses[size]} rounded-full object-cover flex-shrink-0`}
+                    onError={(e) => {
+                        // Fallback to icon if image fails to load
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                    }}
                 />
             );
         }
@@ -558,6 +622,8 @@ const AddEpfForm = ({ onBack }) => {
                                                     }
 
                                                     try {
+                                                        const departmentName = getDepartmentName(user.department);
+
                                                         return (
                                                             <button
                                                                 key={user._id}
@@ -573,9 +639,9 @@ const AddEpfForm = ({ onBack }) => {
                                                                             <div className="font-medium">
                                                                                 EPF: {String(user.epfNumber)} - {String(user.name)}
                                                                             </div>
-                                                                            {user.department && typeof user.department === 'string' && (
+                                                                            {departmentName && (
                                                                                 <div className="text-sm text-gray-500">
-                                                                                    Department: {String(user.department)}
+                                                                                    Department: {departmentName}
                                                                                 </div>
                                                                             )}
                                                                         </div>
@@ -617,16 +683,16 @@ const AddEpfForm = ({ onBack }) => {
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                                                 <div>
                                                     <span className="font-medium text-blue-700">EPF Number:</span>
-                                                    <span className="ml-2 text-blue-800">{selectedUser.epfNumber}</span>
+                                                    <span className="ml-2 text-blue-800">{selectedUser?.epfNumber}</span>
                                                 </div>
                                                 <div>
                                                     <span className="font-medium text-blue-700">Name:</span>
-                                                    <span className="ml-2 text-blue-800">{selectedUser.name}</span>
+                                                    <span className="ml-2 text-blue-800">{selectedUser?.name}</span>
                                                 </div>
-                                                {selectedUser.department && (
+                                                {getDepartmentName(selectedUser?.department) && (
                                                     <div>
                                                         <span className="font-medium text-blue-700">Department:</span>
-                                                        <span className="ml-2 text-blue-800">{selectedUser.department}</span>
+                                                        <span className="ml-2 text-blue-800">{getDepartmentName(selectedUser?.department)}</span>
                                                     </div>
                                                 )}
                                             </div>

@@ -1,4 +1,4 @@
-import { createOrUpdateEmployeeEpf, deleteEmployeeEpf, getEmployeeEpfs, getMaxEpf, updateMaxEpf } from "../services/epf.service.js";
+import { createOrUpdateEmployeeEpf, deleteEmployeeEpfExpense, getEmployeeEpfs, getMaxEpf, updateMaxEpf } from "../services/epf.service.js";
 
 export const updateMaxEpfController = async (req, res) => {
     try {
@@ -134,14 +134,14 @@ export const getMaxEpfController = async (req, res) => {
 
 export const getEmployeeEpfsController = async (req, res) => {
     try {
-        const { user, year } = req.query;
+        const { user_id, year } = req.query;
         const query = {};
 
-        if (user) {
-            if (!/^[a-f\d]{24}$/i.test(user)) {
+        if (user_id) {
+            if (!/^[a-f\d]{24}$/i.test(user_id)) {
                 return res.status(400).json({ success: false, message: "Invalid user ID format." });
             }
-            query.user = user;
+            query.user = user_id;
         }
 
         if (year) {
@@ -152,17 +152,26 @@ export const getEmployeeEpfsController = async (req, res) => {
             query.year = parsedYear;
         }
 
-        const epfRecords = await getEmployeeEpfs(query);
+        const { success, data, message, error } = await getEmployeeEpfs(query);
+
+        if (!success) {
+            return res.status(500).json({
+                success: false,
+                message: message || "Failed to fetch Employee EPF records.",
+                error
+            });
+        }
 
         res.status(200).json({
             success: true,
-            data: epfRecords
+            data
         });
+
     } catch (err) {
         console.error("Controller error fetching Employee EPF records:", err);
         res.status(500).json({
             success: false,
-            message: "Failed to fetch Employee EPF records.",
+            message: "Internal server error",
             error: err.message || err
         });
     }
@@ -170,7 +179,7 @@ export const getEmployeeEpfsController = async (req, res) => {
 
 export const createOrUpdateEmployeeEpfController = async (req, res) => {
     try {
-        const { user, year, rangeExpenses, regularExpenses } = req.body;
+        const { user, year, rangeExpenses, regularExpenses, method } = req.body;
 
         if (!user || !year || !Array.isArray(rangeExpenses) || !Array.isArray(regularExpenses)) {
             return res.status(400).json({
@@ -188,14 +197,12 @@ export const createOrUpdateEmployeeEpfController = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid year date format" });
         }
 
-        console.log(parsedYear);
-
-
         const updated = await createOrUpdateEmployeeEpf({
             user,
             year: parsedYear,
             rangeExpenses,
-            regularExpenses
+            regularExpenses,
+            method
         });
 
         return res.status(200).json({
@@ -213,25 +220,29 @@ export const createOrUpdateEmployeeEpfController = async (req, res) => {
     }
 };
 
-export const deleteEmployeeEpfController = async (req, res) => {
+
+export const deleteEmployeeEpfExpenseController = async (req, res) => {
     try {
-        const { id } = req.params;
-        if (!id || !/^[a-f\d]{24}$/i.test(id)) {
-            return res.status(400).json({ success: false, message: "Invalid EPF record ID" });
+        const { epfId } = req.params;
+        const { type, createdAt, rangeName } = req.body;
+
+        if (!epfId || !/^[a-f\d]{24}$/i.test(epfId)) {
+            return res.status(400).json({ success: false, message: "Invalid EPF ID" });
         }
 
-        const result = await deleteEmployeeEpf(id);
-        if (!result.success) {
-            return res.status(500).json({
-                success: false,
-                message: "Failed to delete EPF record.",
-                error: result.message
-            });
+        if (!createdAt || isNaN(Date.parse(createdAt))) {
+            return res.status(400).json({ success: false, message: "Invalid or missing createdAt timestamp" });
         }
 
-        res.status(200).json({
+        if (type === "range" && !rangeName) {
+            return res.status(400).json({ success: false, message: "Range name is required for range expense deletion" });
+        }
+
+        const result = await deleteEmployeeEpfExpense({ epfId, type, createdAt, rangeName });
+
+        return res.status(200).json({
             success: true,
-            message: "EPF record deleted successfully."
+            message: result.message
         });
     } catch (err) {
         console.error("Controller error:", err);

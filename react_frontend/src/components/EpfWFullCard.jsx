@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
     Wallet,
@@ -22,7 +22,7 @@ import {
     BarChart3,
     Activity
 } from 'lucide-react';
-import { deleteEmployeeEpf, getMaxEpf } from '../apis/epf.api';
+import { createOrUpdateEmployeeEpf, deleteEmployeeEpf, getMaxEpf } from '../apis/epf.api';
 
 const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
     const [allEpfRecords, setAllEpfRecords] = useState([]);
@@ -35,8 +35,13 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const [selectedRecord, setSelectedRecord] = useState(null);
+    const [selectedExpense, setSelectedExpense] = useState(null);
+    const [expenseType, setExpenseType] = useState(''); // 'range' or 'regular'
+    const [rangeIndex, setRangeIndex] = useState(null);
+    const [expenseIndex, setExpenseIndex] = useState(null);
     const [editData, setEditData] = useState({
-        year: new Date().getFullYear()
+        amount: '',
+        expensedAt: ''
     });
     const [isLoading, setIsLoading] = useState(false);
 
@@ -86,8 +91,8 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
         }
     }, [location.search, allEpfRecords]);
 
-    // Handle search filtering
-    const performSearch = () => {
+    // Handle search filtering with useCallback to prevent re-renders
+    const performSearch = useCallback(() => {
         if (isUrlFiltered) return;
 
         if (!searchTerm.trim()) {
@@ -101,7 +106,7 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
             new Date(record.year).getFullYear().toString().includes(searchTerm)
         );
         setFilteredEpfRecords(filtered);
-    };
+    }, [searchTerm, allEpfRecords, isUrlFiltered]);
 
     useEffect(() => {
         if (isUrlFiltered) return;
@@ -109,7 +114,7 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
             performSearch();
         }, 300);
         return () => clearTimeout(timeoutId);
-    }, [searchTerm, allEpfRecords, isUrlFiltered]);
+    }, [performSearch]);
 
     // Calculate total expenses for a record
     const calculateTotalExpenses = (record) => {
@@ -140,9 +145,6 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
             }
         };
         fetchMaxEpf();
-
-        console.log(maxEpf);
-
     }, []);
 
     // Calculate EPF usage percentage
@@ -172,6 +174,12 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
         });
     };
 
+    // Format date for input
+    const formatDateForInput = (dateString) => {
+        const date = new Date(dateString);
+        return date.toISOString().slice(0, 16);
+    };
+
     // Show success message
     const showSuccess = (message) => {
         setSuccessMessage(message);
@@ -186,63 +194,234 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
         setExpandedCard(expandedCard === recordId ? null : recordId);
     };
 
-    // Handle edit form submission
-    const handleEditSubmit = async () => {
-        setIsLoading(true);
-        try {
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            const updatedRecords = allEpfRecords.map(record =>
-                record._id === selectedRecord._id
-                    ? {
-                        ...record,
-                        year: new Date(`${editData.year}-01-01`).toISOString(),
-                        updatedAt: new Date().toISOString()
-                    }
-                    : record
-            );
-            setAllEpfRecords(updatedRecords);
-            setShowEditModal(false);
-            setSelectedRecord(null);
-            showSuccess('EPF record updated successfully!');
-        } catch (error) {
-            console.error('Error updating EPF record:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // Handle delete confirmation
-    const handleDeleteConfirm = async () => {
-        setIsLoading(true);
-        try {
-            await deleteEmployeeEpf(selectedRecord._id);
-            const updatedRecords = allEpfRecords.filter(record => record._id !== selectedRecord._id);
-            setAllEpfRecords(updatedRecords);
-            setShowDeleteModal(false);
-            setSelectedRecord(null);
-            setExpandedCard(null);
-            showSuccess('EPF record deleted successfully!');
-        } catch (error) {
-            console.error('Error deleting EPF record:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // Open edit modal
-    const openEditModal = (record) => {
+    // Open edit modal for range expense
+    const openEditRangeExpenseModal = (record, rangeIdx, expenseIdx) => {
+        const expense = record.rangeExpenses[rangeIdx].expenses[expenseIdx];
         setSelectedRecord(record);
+        setSelectedExpense(expense);
+        setExpenseType('range');
+        setRangeIndex(rangeIdx);
+        setExpenseIndex(expenseIdx);
         setEditData({
-            year: new Date(record.year).getFullYear()
+            amount: expense.amount.toString(),
+            expensedAt: formatDateForInput(expense.expensedAt)
         });
         setShowEditModal(true);
     };
 
-    // Open delete modal
-    const openDeleteModal = (record) => {
+    // Open edit modal for regular expense
+    const openEditRegularExpenseModal = (record, expenseIdx) => {
+        const expense = record.regularExpenses.items[expenseIdx];
         setSelectedRecord(record);
+        setSelectedExpense(expense);
+        setExpenseType('regular');
+        setExpenseIndex(expenseIdx);
+        setEditData({
+            amount: expense.amount.toString(),
+            expensedAt: formatDateForInput(expense.expensedAt)
+        });
+        setShowEditModal(true);
+    };
+
+    // Open delete modal for range expense
+    const openDeleteRangeExpenseModal = (record, rangeIdx, expenseIdx) => {
+        const expense = record.rangeExpenses[rangeIdx].expenses[expenseIdx];
+        setSelectedRecord(record);
+        setSelectedExpense(expense);
+        setExpenseType('range');
+        setRangeIndex(rangeIdx);
+        setExpenseIndex(expenseIdx);
         setShowDeleteModal(true);
     };
+
+    // Open delete modal for regular expense
+    const openDeleteRegularExpenseModal = (record, expenseIdx) => {
+        const expense = record.regularExpenses.items[expenseIdx];
+        setSelectedRecord(record);
+        setSelectedExpense(expense);
+        setExpenseType('regular');
+        setExpenseIndex(expenseIdx);
+        setShowDeleteModal(true);
+    };
+
+    // Handle edit form submission
+    const handleEditSubmit = async () => {
+        setIsLoading(true);
+        try {
+            // Prepare the updated record data for API
+            const updatedRecord = { ...selectedRecord };
+
+            if (expenseType === 'range') {
+                // Update the specific range expense
+                updatedRecord.rangeExpenses[rangeIndex].expenses[expenseIndex] = {
+                    amount: parseFloat(editData.amount),
+                    expensedAt: new Date(editData.expensedAt).toISOString()
+                };
+
+                // Recalculate range expense total
+                updatedRecord.rangeExpenses[rangeIndex].expense = updatedRecord.rangeExpenses[rangeIndex].expenses
+                    .reduce((total, exp) => total + exp.amount, 0);
+            } else if (expenseType === 'regular') {
+                // Update the specific regular expense
+                updatedRecord.regularExpenses.items[expenseIndex] = {
+                    amount: parseFloat(editData.amount),
+                    expensedAt: new Date(editData.expensedAt).toISOString()
+                };
+
+                // Recalculate regular expense total
+                updatedRecord.regularExpenses.expense = updatedRecord.regularExpenses.items
+                    .reduce((total, exp) => total + exp.amount, 0);
+            }
+
+            // Prepare API payload
+            const apiPayload = {
+                user: updatedRecord.user._id,
+                year: new Date(updatedRecord.year).getFullYear().toString(),
+                rangeExpenses: updatedRecord.rangeExpenses.map(range => ({
+                    name: range.name,
+                    expenses: range.expenses.map(expense => ({
+                        amount: expense.amount,
+                        expensedAt: expense.expensedAt
+                    }))
+                })),
+                regularExpenses: updatedRecord.regularExpenses.items.map(expense => ({
+                    amount: expense.amount,
+                    expensedAt: expense.expensedAt
+                }))
+            };
+
+            // Call API to update
+            const response = await createOrUpdateEmployeeEpf(apiPayload);
+
+            if (response.success) {
+                // Update local state with response data
+                const updatedRecords = allEpfRecords.map(record =>
+                    record._id === selectedRecord._id ? response.data : record
+                );
+
+                setAllEpfRecords(updatedRecords);
+                setFilteredEpfRecords(prev => prev.map(record =>
+                    updatedRecords.find(updated => updated._id === record._id) || record
+                ));
+
+                setShowEditModal(false);
+                resetModalState();
+                showSuccess('Expense updated successfully!');
+                window.location.reload()
+            } else {
+                throw new Error(response.message || 'Failed to update expense');
+            }
+        } catch (error) {
+            console.error('Error updating expense:', error);
+            showSuccess('❌ Error updating expense. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleDeleteConfirm = async () => {
+        setIsLoading(true);
+        try {
+            let deletePayload;
+
+            if (expenseType === 'range') {
+                const range = selectedRecord.rangeExpenses[rangeIndex];
+                const rangeName = range.name;
+                const expense = range.expenses[expenseIndex];
+                const createdAt = expense?.createdAt;
+
+                if (!createdAt) throw new Error("Missing createdAt for range expense");
+
+                deletePayload = {
+                    type: "range",
+                    rangeName,
+                    createdAt,
+                };
+            } else if (expenseType === 'regular') {
+                const expense = selectedRecord.regularExpenses.items[expenseIndex];
+                const createdAt = expense?.createdAt;
+
+                if (!createdAt) throw new Error("Missing createdAt for regular expense");
+
+                deletePayload = {
+                    type: "regular",
+                    createdAt,
+                };
+            }
+
+            const response = await deleteEmployeeEpf(selectedRecord._id, deletePayload);
+
+            if (response.success) {
+                const updatedRecords = allEpfRecords.map(record => {
+                    if (record._id === selectedRecord._id) {
+                        const updatedRecord = JSON.parse(JSON.stringify(record)); // Deep clone
+
+                        if (expenseType === 'range') {
+                            updatedRecord.rangeExpenses[rangeIndex].expenses = updatedRecord.rangeExpenses[rangeIndex].expenses.filter(
+                                exp => exp.createdAt !== deletePayload.createdAt
+                            );
+
+                            updatedRecord.rangeExpenses[rangeIndex].expense =
+                                updatedRecord.rangeExpenses[rangeIndex].expenses.reduce((total, exp) => total + exp.amount, 0);
+                        } else if (expenseType === 'regular') {
+                            updatedRecord.regularExpenses.items = updatedRecord.regularExpenses.items.filter(
+                                exp => exp.createdAt !== deletePayload.createdAt
+                            );
+
+                            updatedRecord.regularExpenses.expense =
+                                updatedRecord.regularExpenses.items.reduce((total, exp) => total + exp.amount, 0);
+                        }
+
+                        const rangeTotal = updatedRecord.rangeExpenses?.reduce((total, range) => total + (range.expense || 0), 0) || 0;
+                        const regularTotal = updatedRecord.regularExpenses?.expense || 0;
+                        updatedRecord.expense = rangeTotal + regularTotal;
+                        updatedRecord.updatedAt = new Date().toISOString();
+
+                        return updatedRecord;
+                    }
+                    return record;
+                });
+
+                setAllEpfRecords(updatedRecords);
+                setFilteredEpfRecords(prev =>
+                    prev.map(record =>
+                        updatedRecords.find(updated => updated._id === record._id) || record
+                    )
+                );
+
+                setShowDeleteModal(false);
+                resetModalState();
+                showSuccess('Expense deleted successfully!');
+            } else {
+                throw new Error(response.message || 'Failed to delete expense');
+            }
+        } catch (error) {
+            console.error('Error deleting expense:', error);
+            showSuccess('❌ Error deleting expense. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+
+    // Memoize the edit data handlers to prevent re-renders
+    const handleAmountChange = useCallback((e) => {
+        setEditData(prev => ({ ...prev, amount: e.target.value }));
+    }, []);
+
+    const handleDateChange = useCallback((e) => {
+        setEditData(prev => ({ ...prev, expensedAt: e.target.value }));
+    }, []);
+
+    // Reset modal state
+    const resetModalState = useCallback(() => {
+        setSelectedRecord(null);
+        setSelectedExpense(null);
+        setExpenseType('');
+        setRangeIndex(null);
+        setExpenseIndex(null);
+        setEditData({ amount: '', expensedAt: '' });
+    }, []);
 
     // Progress bar component
     const ProgressBar = ({ percentage, amount, maxAmount, size = "md" }) => {
@@ -412,30 +591,6 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
                                                 </div>
 
                                                 <div className="flex items-center space-x-2 ml-4">
-                                                    {isExpanded && (
-                                                        <div className="flex items-center space-x-2 mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    openEditModal(record);
-                                                                }}
-                                                                className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded-lg transition-all duration-200 transform hover:scale-105"
-                                                                title="Edit EPF Record"
-                                                            >
-                                                                <Edit3 className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    openDeleteModal(record);
-                                                                }}
-                                                                className="p-2 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-all duration-200 transform hover:scale-105"
-                                                                title="Delete EPF Record"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    )}
                                                     <div className="group-hover:text-blue-600 transition-colors duration-200">
                                                         {isExpanded ? (
                                                             <ChevronUp className="w-5 h-5" />
@@ -524,16 +679,34 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
                                                                             </div>
                                                                             <div className="space-y-2">
                                                                                 {range.expenses && range.expenses.map((expense, expenseIndex) => (
-                                                                                    <div key={expenseIndex} className="flex items-center justify-between bg-purple-50/80 rounded p-3 border border-purple-100/50">
+                                                                                    <div key={expenseIndex} className="flex items-center justify-between bg-purple-50/80 rounded p-3 border border-purple-100/50 group hover:bg-purple-100/50 transition-colors duration-200">
                                                                                         <div className="flex items-center space-x-3">
                                                                                             <Activity className="w-4 h-4 text-purple-500" />
                                                                                             <span className="text-sm text-gray-700">
                                                                                                 {formatDate(expense.expensedAt)}
                                                                                             </span>
                                                                                         </div>
-                                                                                        <span className="font-semibold text-purple-700">
-                                                                                            {formatCurrency(expense.amount)}
-                                                                                        </span>
+                                                                                        <div className="flex items-center space-x-2">
+                                                                                            <span className="font-semibold text-purple-700">
+                                                                                                {formatCurrency(expense.amount)}
+                                                                                            </span>
+                                                                                            <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                                                                <button
+                                                                                                    onClick={() => openEditRangeExpenseModal(record, rangeIndex, expenseIndex)}
+                                                                                                    className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-all duration-200"
+                                                                                                    title="Edit Expense"
+                                                                                                >
+                                                                                                    <Edit3 className="w-3 h-3" />
+                                                                                                </button>
+                                                                                                <button
+                                                                                                    onClick={() => openDeleteRangeExpenseModal(record, rangeIndex, expenseIndex)}
+                                                                                                    className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded transition-all duration-200"
+                                                                                                    title="Delete Expense"
+                                                                                                >
+                                                                                                    <Trash2 className="w-3 h-3" />
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        </div>
                                                                                     </div>
                                                                                 ))}
                                                                             </div>
@@ -559,16 +732,34 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
                                                                 </div>
                                                                 <div className="space-y-2">
                                                                     {record.regularExpenses.items.map((expense, index) => (
-                                                                        <div key={index} className="flex items-center justify-between bg-orange-50/80 rounded p-3 border border-orange-100/50">
+                                                                        <div key={index} className="flex items-center justify-between bg-orange-50/80 rounded p-3 border border-orange-100/50 group hover:bg-orange-100/50 transition-colors duration-200">
                                                                             <div className="flex items-center space-x-3">
                                                                                 <Activity className="w-4 h-4 text-orange-500" />
                                                                                 <span className="text-sm text-gray-700">
                                                                                     {formatDate(expense.expensedAt)}
                                                                                 </span>
                                                                             </div>
-                                                                            <span className="font-semibold text-orange-700">
-                                                                                {formatCurrency(expense.amount)}
-                                                                            </span>
+                                                                            <div className="flex items-center space-x-2">
+                                                                                <span className="font-semibold text-orange-700">
+                                                                                    {formatCurrency(expense.amount)}
+                                                                                </span>
+                                                                                <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                                                    <button
+                                                                                        onClick={() => openEditRegularExpenseModal(record, index)}
+                                                                                        className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-all duration-200"
+                                                                                        title="Edit Expense"
+                                                                                    >
+                                                                                        <Edit3 className="w-3 h-3" />
+                                                                                    </button>
+                                                                                    <button
+                                                                                        onClick={() => openDeleteRegularExpenseModal(record, index)}
+                                                                                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded transition-all duration-200"
+                                                                                        title="Delete Expense"
+                                                                                    >
+                                                                                        <Trash2 className="w-3 h-3" />
+                                                                                    </button>
+                                                                                </div>
+                                                                            </div>
                                                                         </div>
                                                                     ))}
                                                                 </div>
@@ -596,84 +787,103 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
                         )}
                     </div>
 
-
                     {/* Edit Modal */}
-                    <ModalBackdrop show={showEditModal} onClose={() => setShowEditModal(false)}>
-                        <div className="p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                        <Edit3 className="w-5 h-5 text-blue-600" />
+                    {showEditModal && (
+                        <ModalBackdrop show={showEditModal} onClose={() => { setShowEditModal(false); resetModalState(); }}>
+                            <div className="p-6">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                            <Edit3 className="w-5 h-5 text-blue-600" />
+                                        </div>
+                                        <h2 className="text-xl font-bold text-gray-900">
+                                            Edit {expenseType === 'range' ? 'Range' : 'Regular'} Expense
+                                        </h2>
                                     </div>
-                                    <h2 className="text-xl font-bold text-gray-900">Edit EPF Record</h2>
-                                </div>
-                                <button
-                                    onClick={() => setShowEditModal(false)}
-                                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                                >
-                                    <X className="w-5 h-5 text-gray-500" />
-                                </button>
-                            </div>
-
-                            <div className="space-y-5">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Year
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={editData.year}
-                                        onChange={(e) => setEditData({ ...editData, year: e.target.value })}
-                                        className="w-full outline-none px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                                        placeholder="Enter year"
-                                        min="2000"
-                                        max="2030"
-                                        required
-                                    />
-                                </div>
-
-                                <div className="flex space-x-3 pt-4">
                                     <button
-                                        type="button"
-                                        onClick={() => setShowEditModal(false)}
-                                        className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors duration-200"
-                                        disabled={isLoading}
+                                        onClick={() => { setShowEditModal(false); resetModalState(); }}
+                                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                                     >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleEditSubmit}
-                                        disabled={isLoading || !editData.year}
-                                        className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50"
-                                    >
-                                        <Save className="w-4 h-4" />
-                                        <span>{isLoading ? 'Saving...' : 'Save Changes'}</span>
+                                        <X className="w-5 h-5 text-gray-500" />
                                     </button>
                                 </div>
+
+                                <div className="space-y-5">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Amount (LKR)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={editData.amount}
+                                            onChange={handleAmountChange}
+                                            className="w-full outline-none px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                                            placeholder="Enter amount"
+                                            min="0"
+                                            step="0.01"
+                                            required
+                                            autoComplete="off"
+                                            autoFocus
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Expense Date
+                                        </label>
+                                        <input
+                                            type="datetime-local"
+                                            value={editData.expensedAt}
+                                            onChange={handleDateChange}
+                                            className="w-full outline-none px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                                            required
+                                            autoComplete="off"
+                                        />
+                                    </div>
+
+                                    <div className="flex space-x-3 pt-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setShowEditModal(false); resetModalState(); }}
+                                            className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors duration-200"
+                                            disabled={isLoading}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleEditSubmit}
+                                            disabled={isLoading || !editData.amount || !editData.expensedAt}
+                                            className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50"
+                                        >
+                                            <Save className="w-4 h-4" />
+                                            <span>{isLoading ? 'Saving...' : 'Save Changes'}</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </ModalBackdrop>
+                        </ModalBackdrop>
+                    )}
 
                     {/* Delete Confirmation Modal */}
-                    <ModalBackdrop show={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
+                    <ModalBackdrop show={showDeleteModal} onClose={() => { setShowDeleteModal(false); resetModalState(); }}>
                         <div className="p-6">
                             <div className="flex items-center space-x-3 mb-6">
                                 <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
                                     <AlertTriangle className="w-6 h-6 text-red-600" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-bold text-gray-900">Delete EPF Record</h2>
+                                    <h2 className="text-xl font-bold text-gray-900">Delete {expenseType === 'range' ? 'Range' : 'Regular'} Expense</h2>
                                     <p className="text-sm text-gray-500 mt-1">This action cannot be undone</p>
                                 </div>
                             </div>
 
-                            {selectedRecord && (
+                            {selectedExpense && (
                                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
                                     <p className="text-red-800">
-                                        Are you sure you want to delete the EPF record for <strong>"{selectedRecord.user?.name || 'Unknown'}"</strong>
-                                        for year {new Date(selectedRecord.year).getFullYear()}?
-                                        This will permanently remove the record and all associated data.
+                                        Are you sure you want to delete this expense of <strong>{formatCurrency(selectedExpense.amount)}</strong>
+                                        from <strong>{formatDate(selectedExpense.expensedAt)}</strong>?
+                                        This will permanently remove the expense and update the totals.
                                     </p>
                                 </div>
                             )}
@@ -681,7 +891,7 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
                             <div className="flex space-x-3">
                                 <button
                                     type="button"
-                                    onClick={() => setShowDeleteModal(false)}
+                                    onClick={() => { setShowDeleteModal(false); resetModalState(); }}
                                     className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors duration-200"
                                     disabled={isLoading}
                                 >
@@ -693,7 +903,7 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
                                     className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg font-medium transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50"
                                 >
                                     <Trash2 className="w-4 h-4" />
-                                    <span>{isLoading ? 'Deleting...' : 'Delete Record'}</span>
+                                    <span>{isLoading ? 'Deleting...' : 'Delete Expense'}</span>
                                 </button>
                             </div>
                         </div>

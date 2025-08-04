@@ -42,9 +42,14 @@ export const getEmpEpf = async (query = {}) => {
     }
 };
 
-export const createOrUpdateEmployeeEpf = async (data) => {
+export const createOrUpdateEmployeeEpf = async (data, method = "update") => {
     try {
-        const response = await axios.post(`${API_BASE_URL}/epf/emp`, data, { withCredentials: true });
+        const payload = { ...data, method };
+
+        const response = await axios.post(`${API_BASE_URL}/epf/emp`, payload, {
+            withCredentials: true
+        });
+
         return response.data;
     } catch (err) {
         console.error("Error creating/updating employee EPF:", err);
@@ -53,13 +58,22 @@ export const createOrUpdateEmployeeEpf = async (data) => {
     }
 };
 
-export const deleteEmployeeEpf = async (id) => {
+
+export const deleteEmployeeEpf = async (epfId, { type, createdAt, rangeName }) => {
     try {
-        const response = await axios.delete(`${API_BASE_URL}/epf/emp/${id}`, { withCredentials: true });
+        const response = await axios.delete(`${API_BASE_URL}/epf/emp/${epfId}`, {
+            withCredentials: true,
+            data: {
+                type,
+                createdAt,
+                rangeName
+            }
+        });
         return response.data;
     } catch (err) {
-        console.error("Error deleting employee EPF:", err);
-        const message = err.response?.data?.message || "Failed to delete employee EPF.";
+        console.error("Error deleting employee EPF expense:", err);
+        const message = err.response?.data?.message || "Failed to delete employee EPF expense.";
         throw new Error(message);
     }
 };
+

@@ -10,12 +10,12 @@ const individualExpenseSchema = new mongoose.Schema({
     expensedAt: {
         type: Date,
         required: true,
-    },
-    updatedAt: {
-        type: Date,
-        required: true,
-    },
-}, { _id: false });
+    }
+}, {
+    _id: false,
+    timestamps: true
+});
+
 
 const rangeSchema = new mongoose.Schema({
     name: {
