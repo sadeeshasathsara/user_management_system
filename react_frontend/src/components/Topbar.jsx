@@ -3,6 +3,7 @@ import { Menu, Bell, Search, User, ChevronDown, UserCircle, LogOut, Filter, X, C
 import { logoutApi } from '../apis/logout.api';
 import { getEmployeesApi } from '../apis/employee.api';
 import { fetchDepartmentsApi } from '../apis/department.api';
+import { getEmpEpf } from '../apis/epf.api';
 import { useUserStore } from '../tools/user.zustand';
 
 const SearchModal = ({ isOpen, onClose }) => {
@@ -11,20 +12,19 @@ const SearchModal = ({ isOpen, onClose }) => {
     const [recentSearches, setRecentSearches] = useState([]);
     const [employees, setEmployees] = useState([]);
     const [departments, setDepartments] = useState([]);
+    const [epfRecords, setEpfRecords] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const searchInputRef = useRef(null);
     const debounceRef = useRef(null);
 
-    // Mock data for other search types - replace with actual API calls as needed
+    // System navigation data
     const systemNavigation = [
         { title: 'Dashboard', url: '/dashboard', description: 'Main dashboard with overview and key metrics', keywords: ['dashboard', 'home', 'overview', 'main', 'metrics', 'summary'] },
         { title: 'Overview', url: '/dashboard#overview', description: 'Quick summary of system statistics and insights', keywords: ['overview', 'summary', 'stats', 'insights', 'quick view'] },
         { title: 'Total Employee Stats', url: '/dashboard#stats', description: 'Employee count, EPF totals, salary metrics, and department statistics', keywords: ['stats', 'statistics', 'total', 'employee', 'epf', 'salary', 'departments', 'admin', 'users', 'metrics', 'count'] },
         { title: 'Team Distribution', url: '/dashboard#teamdestribution', description: 'Visual charts showing employee distribution across departments', keywords: ['team', 'distribution', 'chart', 'graph', 'visual', 'departments', 'breakdown'] },
         { title: 'EPF Contribution', url: '/dashboard#epfcontribution', description: 'Monthly and yearly EPF contribution trends and analytics', keywords: ['epf', 'contribution', 'fund', 'provident', 'trends', 'analytics', 'monthly', 'yearly'] },
-        { title: 'New Employees', url: '/dashboard#newemployees', description: 'Recently joined employees and onboarding status', keywords: ['new', 'recent', 'latest', 'employees', 'joined', 'onboarding', 'recruits'] },
-        { title: 'Recent EPF Entries', url: '/dashboard#recentepf', description: 'Latest EPF contributions and payment records', keywords: ['recent', 'epf', 'entries', 'latest', 'contributions', 'payments', 'records'] },
         { title: 'Employees', url: '/employees', description: 'Complete employee directory with profiles and information', keywords: ['employees', 'staff', 'workers', 'personnel', 'team members', 'directory', 'profiles'] },
         { title: 'New Employee', url: '/employees/add', description: 'Add new employee with personal details and job information', keywords: ['add', 'new', 'create', 'employee', 'register', 'hire', 'onboard', 'recruit'] },
         { title: 'Departments', url: '/departments', description: 'Manage organizational departments and their structure', keywords: ['departments', 'divisions', 'sections', 'units', 'organization', 'structure', 'teams'] },
@@ -36,19 +36,12 @@ const SearchModal = ({ isOpen, onClose }) => {
         { title: 'EPF Configurations', url: '/settings/epf', description: 'Configure EPF rates, calculations, and system settings', keywords: ['settings', 'configuration', 'epf', 'setup', 'preferences', 'rates', 'calculations'] },
     ];
 
-
-    const mockEpfRecords = [
-        { id: '1', employeeName: 'John Doe', expense: 5000, year: '2024' },
-        { id: '2', employeeName: 'Jane Smith', expense: 4500, year: '2024' },
-        { id: '3', employeeName: 'Mike Johnson', expense: 5200, year: '2024' },
-    ];
-
     const filters = [
-        { id: 'all', label: 'All', icon: Search },
-        { id: 'navigation', label: 'Navigation', icon: BarChart3 },
-        { id: 'employees', label: 'Employees', icon: Users },
-        { id: 'departments', label: 'Departments', icon: Building2 },
-        { id: 'epf', label: 'EPF Records', icon: FileText },
+        { id: 'all', label: 'All', icon: Search, color: 'text-indigo-400' },
+        { id: 'navigation', label: 'Navigation', icon: BarChart3, color: 'text-purple-400' },
+        { id: 'employees', label: 'Employees', icon: Users, color: 'text-blue-400' },
+        { id: 'departments', label: 'Departments', icon: Building2, color: 'text-green-400' },
+        { id: 'epf', label: 'EPF Records', icon: FileText, color: 'text-orange-400' },
     ];
 
     // API call to fetch employees
@@ -95,23 +88,54 @@ const SearchModal = ({ isOpen, onClose }) => {
         }
     };
 
-    // Load recent searches from memory on component mount
-    useEffect(() => {
-        // In a real application, you would use localStorage here:
-        // const savedSearches = localStorage.getItem('recentSearches');
-        // if (savedSearches) {
-        //     setRecentSearches(JSON.parse(savedSearches));
-        // }
+    // API call to fetch EPF records
+    const fetchEpfRecords = async (query) => {
+        if (!query || query.trim().length < 2) {
+            setEpfRecords([]);
+            return;
+        }
 
-        // For now, using default searches since localStorage is not available in this environment
-        setRecentSearches(['John Doe', 'HR Department', 'EPF Entry 2024']);
+        setLoading(true);
+        setError(null);
+
+        try {
+            const response = await getEmpEpf({ search: query.trim() });
+            // Handle the response data structure based on your API response format
+            const epfData = response.data || response || [];
+            setEpfRecords(Array.isArray(epfData) ? epfData : []);
+        } catch (err) {
+            console.error('Error fetching EPF records:', err);
+            setError('Failed to fetch EPF records');
+            setEpfRecords([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Load recent searches from localStorage on component mount
+    useEffect(() => {
+        try {
+            const savedSearches = localStorage.getItem('recentSearches');
+            if (savedSearches) {
+                const parsedSearches = JSON.parse(savedSearches);
+                if (Array.isArray(parsedSearches)) {
+                    setRecentSearches(parsedSearches);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading recent searches from localStorage:', error);
+            setRecentSearches([]);
+        }
     }, []);
 
-    // Save recent searches to memory whenever they change
+    // Save recent searches to localStorage whenever they change
     const saveRecentSearches = (searches) => {
         setRecentSearches(searches);
-        // In a real application, you would save to localStorage here:
-        // localStorage.setItem('recentSearches', JSON.stringify(searches));
+        try {
+            localStorage.setItem('recentSearches', JSON.stringify(searches));
+        } catch (error) {
+            console.error('Error saving recent searches to localStorage:', error);
+        }
     };
 
     // Debounced search effect
@@ -123,24 +147,33 @@ const SearchModal = ({ isOpen, onClose }) => {
         if (searchQuery) {
             debounceRef.current = setTimeout(() => {
                 if (selectedFilter === 'all') {
-                    // Fetch both employees and departments for 'all' filter
+                    // Fetch employees, departments, and EPF records for 'all' filter
                     fetchEmployees(searchQuery);
                     fetchDepartments(searchQuery);
+                    fetchEpfRecords(searchQuery);
                 } else if (selectedFilter === 'employees') {
                     fetchEmployees(searchQuery);
                     setDepartments([]);
+                    setEpfRecords([]);
                 } else if (selectedFilter === 'departments') {
                     fetchDepartments(searchQuery);
                     setEmployees([]);
+                    setEpfRecords([]);
+                } else if (selectedFilter === 'epf') {
+                    fetchEpfRecords(searchQuery);
+                    setEmployees([]);
+                    setDepartments([]);
                 } else {
                     setEmployees([]);
                     setDepartments([]);
+                    setEpfRecords([]);
                     setLoading(false);
                 }
             }, 300); // 300ms debounce
         } else {
             setEmployees([]);
             setDepartments([]);
+            setEpfRecords([]);
             setLoading(false);
         }
 
@@ -168,11 +201,6 @@ const SearchModal = ({ isOpen, onClose }) => {
                     item.description.toLowerCase().includes(lowerQuery) ||
                     item.keywords.some(keyword => keyword.toLowerCase().includes(lowerQuery))
                 );
-            case 'epf':
-                return mockEpfRecords.filter(record =>
-                    record.employeeName.toLowerCase().includes(lowerQuery) ||
-                    record.year.includes(lowerQuery)
-                );
             default:
                 return [];
         }
@@ -192,7 +220,6 @@ const SearchModal = ({ isOpen, onClose }) => {
             const employeeResults = employees.map(emp => ({
                 ...emp,
                 type: 'employees',
-                // Ensure consistent field names
                 name: emp.name,
                 epfNumber: emp.epfNumber,
                 department: emp.department?.name || emp.department,
@@ -207,9 +234,17 @@ const SearchModal = ({ isOpen, onClose }) => {
                 description: dept.description
             }));
 
-            // EPF results
-            const epfResults = filterResults([], searchQuery, 'epf')
-                .map(item => ({ ...item, type: 'epf' }));
+            // EPF results (from API)
+            const epfResults = epfRecords.map(record => ({
+                ...record,
+                type: 'epf',
+                // Handle different possible data structures from your API
+                employeeName: record.user?.name || record.employeeName || 'Unknown Employee',
+                totalExpense: record.expense || record.totalExpense || 0,
+                year: new Date(record.year).getFullYear() || 'Unknown Year',
+                rangeExpensesCount: record.rangeExpenses?.length || 0,
+                regularExpensesCount: record.regularExpenses?.items?.length || 0
+            }));
 
             results = [...navigationResults, ...employeeResults, ...departmentResults, ...epfResults];
         } else if (selectedFilter === 'employees') {
@@ -228,6 +263,16 @@ const SearchModal = ({ isOpen, onClose }) => {
                 name: dept.name,
                 description: dept.description
             }));
+        } else if (selectedFilter === 'epf') {
+            results = epfRecords.map(record => ({
+                ...record,
+                type: 'epf',
+                employeeName: record.user?.name || record.employeeName || 'Unknown Employee',
+                totalExpense: record.expense || record.totalExpense || 0,
+                year: new Date(record.year).getFullYear() || 'Unknown Year',
+                rangeExpensesCount: record.rangeExpenses?.length || 0,
+                regularExpensesCount: record.regularExpenses?.items?.length || 0
+            }));
         } else {
             results = filterResults([], searchQuery, selectedFilter)
                 .map(item => ({ ...item, type: selectedFilter }));
@@ -245,6 +290,9 @@ const SearchModal = ({ isOpen, onClose }) => {
         } else if (result.type === 'departments') {
             // Navigate to departments page with dept parameter
             window.location.href = `/departments?dept=${result._id || result.id}`;
+        } else if (result.type === 'epf') {
+            // Navigate to EPF page with id parameter
+            window.location.href = `/epf?id=${result._id || result.id}`;
         }
 
         // Add to recent searches
@@ -267,16 +315,39 @@ const SearchModal = ({ isOpen, onClose }) => {
         }
     };
 
+    const getResultTagColor = (type) => {
+        switch (type) {
+            case 'navigation': return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+            case 'employees': return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+            case 'departments': return 'bg-green-500/20 text-green-300 border-green-500/30';
+            case 'epf': return 'bg-orange-500/20 text-orange-300 border-orange-500/30';
+            default: return 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30';
+        }
+    };
+
+    const getResultTagLabel = (type) => {
+        switch (type) {
+            case 'navigation': return 'Navigation';
+            case 'employees': return 'Employee';
+            case 'departments': return 'Department';
+            case 'epf': return 'EPF Record';
+            default: return type;
+        }
+    };
+
     const handleRecentSearchClick = (search) => {
         setSearchQuery(search);
         // Auto-search when clicking recent search based on current filter
         if (selectedFilter === 'all') {
             fetchEmployees(search);
             fetchDepartments(search);
+            fetchEpfRecords(search);
         } else if (selectedFilter === 'employees') {
             fetchEmployees(search);
         } else if (selectedFilter === 'departments') {
             fetchDepartments(search);
+        } else if (selectedFilter === 'epf') {
+            fetchEpfRecords(search);
         }
     };
 
@@ -305,7 +376,7 @@ const SearchModal = ({ isOpen, onClose }) => {
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Search employees by name, EPF number, email, contact, address, NIC..."
+                                    placeholder="Search employees, departments, EPF records by name, EPF number, year..."
                                     className="w-full pl-12 pr-4 py-4 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 backdrop-blur-sm"
                                 />
                                 {loading && (
@@ -334,7 +405,7 @@ const SearchModal = ({ isOpen, onClose }) => {
                                             onClick={() => setSelectedFilter(filter.id)}
                                             className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm transition-all duration-200 ${selectedFilter === filter.id
                                                 ? 'bg-gray-700/60 text-white border border-gray-600/50'
-                                                : 'text-gray-300 hover:text-white hover:bg-gray-700/40'
+                                                : `${filter.color} hover:text-white hover:bg-gray-700/40`
                                                 }`}
                                         >
                                             <IconComponent className="w-3.5 h-3.5" />
@@ -387,12 +458,18 @@ const SearchModal = ({ isOpen, onClose }) => {
                                                             </>
                                                         )}
                                                         {result.type === 'departments' && result.description}
-                                                        {result.type === 'epf' && `${result.expense} • ${result.year}`}
+                                                        {result.type === 'epf' && (
+                                                            <>
+                                                                Total: LKR {result.totalExpense?.toLocaleString() || '0'} • {result.year}
+                                                                {result.rangeExpensesCount > 0 && ` • ${result.rangeExpensesCount} range expense${result.rangeExpensesCount > 1 ? 's' : ''}`}
+                                                                {result.regularExpensesCount > 0 && ` • ${result.regularExpensesCount} regular expense${result.regularExpensesCount > 1 ? 's' : ''}`}
+                                                            </>
+                                                        )}
                                                     </p>
                                                 </div>
                                                 <div className="flex-shrink-0">
-                                                    <span className="text-xs text-gray-300 bg-gray-700/50 px-2 py-1 rounded-full capitalize">
-                                                        {result.type}
+                                                    <span className={`text-xs px-2 py-1 rounded-full border ${getResultTagColor(result.type)}`}>
+                                                        {getResultTagLabel(result.type)}
                                                     </span>
                                                 </div>
                                             </button>
@@ -408,20 +485,30 @@ const SearchModal = ({ isOpen, onClose }) => {
                             )
                         ) : (
                             <div className="p-4">
-                                <h3 className="text-gray-300 font-medium mb-3 flex items-center space-x-2">
-                                    <Clock className="w-4 h-4" />
-                                    <span>Recent Searches</span>
-                                </h3>
-                                {recentSearches.map((search, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => handleRecentSearchClick(search)}
-                                        className="w-full flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200 text-left"
-                                    >
-                                        <Clock className="w-4 h-4 text-gray-400" />
-                                        <span className="text-gray-300">{search}</span>
-                                    </button>
-                                ))}
+                                {recentSearches.length > 0 ? (
+                                    <>
+                                        <h3 className="text-gray-300 font-medium mb-3 flex items-center space-x-2">
+                                            <Clock className="w-4 h-4" />
+                                            <span>Recent Searches</span>
+                                        </h3>
+                                        {recentSearches.map((search, index) => (
+                                            <button
+                                                key={index}
+                                                onClick={() => handleRecentSearchClick(search)}
+                                                className="w-full flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200 text-left"
+                                            >
+                                                <Clock className="w-4 h-4 text-gray-400" />
+                                                <span className="text-gray-300">{search}</span>
+                                            </button>
+                                        ))}
+                                    </>
+                                ) : (
+                                    <div className="text-center py-8">
+                                        <Search className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+                                        <p className="text-gray-300">No recent searches</p>
+                                        <p className="text-gray-400 text-sm">Start searching to see your history</p>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -541,7 +628,7 @@ const Topbar = ({ setSidebarOpen, currentPage }) => {
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                             <input
                                 type="text"
-                                placeholder="Search employees, departments... (Ctrl+F)"
+                                placeholder="(Ctrl + F) Search employees, departments, EPF records..."
                                 onClick={handleSearchClick}
                                 readOnly
                                 className="w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-lg bg-gray-50 
