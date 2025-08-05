@@ -5,8 +5,8 @@ export const getAdmins = async () => {
         const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/admins`, { withCredentials: true });
         return res.data;
     } catch (err) {
-        console.log(e);
-        return e.message;
+        console.log(err);
+        return err.message;
     }
 }
 

@@ -17,47 +17,25 @@ import {
     UserCheck,
     UserX,
     Power,
-    PowerOff
+    PowerOff,
+    LogOut
 } from 'lucide-react';
 import { deleteAccount, tougleAccountStatus } from '../apis/admin.api';
+import { useUserStore } from '../tools/user.zustand';
 
 const AdminWFullCard = ({ adminRecords: initialAdminRecords }) => {
-    // Mock admin records if none provided
-    const defaultAdminRecords = [
-        {
-            _id: '1',
-            email: 'admin@company.com',
-            epfNo: 12345,
-            isActive: true,
-            createdAt: '2024-01-10T08:30:00Z',
-            updatedAt: '2024-07-25T16:45:00Z'
-        },
-        {
-            _id: '2',
-            email: 'superadmin@company.com',
-            epfNo: 67890,
-            isActive: true,
-            createdAt: '2024-02-15T09:15:00Z',
-            updatedAt: '2024-07-20T11:30:00Z'
-        },
-        {
-            _id: '3',
-            email: 'hr.admin@company.com',
-            epfNo: 11111,
-            isActive: false,
-            createdAt: '2024-03-20T10:45:00Z',
-            updatedAt: '2024-06-10T14:20:00Z'
-        }
-    ];
+
+    const { user } = useUserStore();
 
     const [adminRecords, setAdminRecords] = useState(
-        initialAdminRecords || defaultAdminRecords.map(admin => ({ ...admin, isActive: admin.isActive ?? true }))
+        initialAdminRecords
     );
     const [searchTerm, setSearchTerm] = useState('');
     const [expandedCard, setExpandedCard] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showToggleModal, setShowToggleModal] = useState(false);
+    const [showSelfDeactivationWarning, setShowSelfDeactivationWarning] = useState(false);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const [selectedRecord, setSelectedRecord] = useState(null);
@@ -68,11 +46,12 @@ const AdminWFullCard = ({ adminRecords: initialAdminRecords }) => {
     const [isLoading, setIsLoading] = useState(false);
 
     // Filter admin records based on search term
-    const filteredAdminRecords = adminRecords.filter(record =>
-        record.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.epfNo.toString().includes(searchTerm) ||
+    const filteredAdminRecords = (Array.isArray(adminRecords) ? adminRecords : []).filter(record =>
+        record.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.epfNo?.toString().includes(searchTerm) ||
         (record.isActive ? 'active' : 'inactive').includes(searchTerm.toLowerCase())
     );
+
 
     // Format date
     const formatDate = (dateString) => {
@@ -93,6 +72,7 @@ const AdminWFullCard = ({ adminRecords: initialAdminRecords }) => {
             setShowSuccessMessage(false);
         }, 3000);
     };
+
 
     // Handle card expand/collapse
     const toggleCard = (recordId) => {
@@ -146,9 +126,11 @@ const AdminWFullCard = ({ adminRecords: initialAdminRecords }) => {
 
             setAdminRecords(updatedRecords);
             setShowToggleModal(false);
+            setShowSelfDeactivationWarning(false);
             const newStatus = !selectedRecord.isActive;
             setSelectedRecord(null);
             showSuccess(`Admin account ${newStatus ? 'activated' : 'deactivated'} successfully!`);
+            window.location.reload()
         } catch (error) {
             console.error('Error toggling admin status:', error);
         } finally {
@@ -162,7 +144,9 @@ const AdminWFullCard = ({ adminRecords: initialAdminRecords }) => {
         try {
             await deleteAccount(selectedRecord._id)
 
-            const updatedRecords = adminRecords.filter(record => record._id !== selectedRecord._id);
+            const updatedRecords = (Array.isArray(adminRecords) ? adminRecords : []).filter(
+                record => record._id !== selectedRecord._id
+            );
             setAdminRecords(updatedRecords);
             setShowDeleteModal(false);
             setSelectedRecord(null);
@@ -188,6 +172,18 @@ const AdminWFullCard = ({ adminRecords: initialAdminRecords }) => {
     // Open toggle modal
     const openToggleModal = (record) => {
         setSelectedRecord(record);
+
+        // Check if user is trying to deactivate their own account
+        if (record.isActive && user.email === record.email) {
+            setShowSelfDeactivationWarning(true);
+        } else {
+            setShowToggleModal(true);
+        }
+    };
+
+    // Proceed with self-deactivation after warning confirmation
+    const proceedWithSelfDeactivation = () => {
+        setShowSelfDeactivationWarning(false);
         setShowToggleModal(true);
     };
 
@@ -443,6 +439,70 @@ const AdminWFullCard = ({ adminRecords: initialAdminRecords }) => {
                     })
                 )}
             </div>
+
+            {/* Self-Deactivation Warning Modal */}
+            <ModalBackdrop show={showSelfDeactivationWarning} onClose={() => setShowSelfDeactivationWarning(false)}>
+                <div className="p-6">
+                    <div className="flex items-center space-x-3 mb-6">
+                        <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                            <LogOut className="w-6 h-6 text-red-600" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">Warning: Self-Deactivation</h2>
+                            <p className="text-sm text-gray-500 mt-1">You are about to deactivate your own account</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+                        <div className="flex">
+                            <div className="flex-shrink-0">
+                                <AlertTriangle className="h-5 w-5 text-red-400" />
+                            </div>
+                            <div className="ml-3">
+                                <h3 className="text-sm font-medium text-red-800">
+                                    Critical Warning
+                                </h3>
+                                <div className="mt-2 text-sm text-red-700">
+                                    <p className="mb-2">
+                                        You are attempting to deactivate your own admin account. If you proceed:
+                                    </p>
+                                    <ul className="list-disc list-inside space-y-1">
+                                        <li>You will be immediately logged out of the system</li>
+                                        <li>You will lose all admin privileges and access</li>
+                                        <li>You cannot reactivate your account yourself</li>
+                                        <li>Another admin will need to reactivate your account</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {selectedRecord && (
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+                            <p className="text-gray-800">
+                                Account to be deactivated: <strong>{selectedRecord.email}</strong>
+                            </p>
+                        </div>
+                    )}
+
+                    <div className="flex space-x-3">
+                        <button
+                            type="button"
+                            onClick={() => setShowSelfDeactivationWarning(false)}
+                            className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors duration-200"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={proceedWithSelfDeactivation}
+                            className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            <span>I Understand, Proceed</span>
+                        </button>
+                    </div>
+                </div>
+            </ModalBackdrop>
 
             {/* Edit Modal - Now View Only */}
             <ModalBackdrop show={showEditModal} onClose={() => setShowEditModal(false)}>

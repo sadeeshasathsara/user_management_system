@@ -105,6 +105,9 @@ export const getEmployeesApi = async (query = {}) => {
             withCredentials: true
         });
 
+        console.log(res.data);
+
+
         return res.data;
     } catch (err) {
         console.error('Get Employees Error:', err);

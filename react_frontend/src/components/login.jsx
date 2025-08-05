@@ -197,7 +197,7 @@ const LoginUI = ({ forgotClicked = () => { } }) => {
 
                 <div className="mt-8 text-center">
                     <p className="text-xs text-gray-500">
-                        © 2024 UMS Dashboard. All rights reserved.
+                        © 2025 UMS Dashboard. All rights reserved.
                     </p>
                 </div>
             </div>
