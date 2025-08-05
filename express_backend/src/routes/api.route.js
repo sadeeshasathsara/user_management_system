@@ -13,6 +13,8 @@ import { createOrUpdateEmployeeEpfController, deleteEmployeeEpfExpenseController
 import { getEmployeesByQuery } from '../services/employee.service.js';
 import { departmentStats, epfMonthlyContribution, statsController } from '../controllers/stats.controller.js';
 import { accountRecoveryController, recoveryUpdatePassword, updatePasswordController, validateOtpController } from '../controllers/recovery.controller.js';
+import { handleBackupDownload } from '../controllers/backup.controller.js';
+import { handleRestore } from '../controllers/restore.controller.js';
 
 router.post('/login', loginController);
 router.post('/register', registerController);
@@ -48,6 +50,9 @@ router.post('/recovery/validate-otp', validateOtpController);
 router.post('/recovery/update-pwd', recoveryUpdatePassword);
 
 router.put('/update-pwd', verifyAuth, updatePasswordController);
+
+router.get('/backup', handleBackupDownload);
+//router.post('/restore', handleRestore);
 
 router.get('/check-auth', verifyAuth, async (req, res) => {
     const admins = await getEmployeesByQuery({ email: req.user.email })

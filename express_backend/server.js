@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import mongoose from 'mongoose';
 import cookieParser from 'cookie-parser';
+import cron from 'node-cron';
 
 import apiRoutes from './src/routes/api.route.js'
 
@@ -29,6 +30,18 @@ app.get('/', (req, res) => {
 
 //API Routes
 app.use('/api/v1', apiRoutes);
+
+//Cron
+// Schedule every 7 days at 3:00 AM
+cron.schedule('0 3 */7 * *', async () => {
+    try {
+        console.log('📦 Scheduled Backup Started');
+        await createSystemBackup();
+        await cleanupOldBackups();
+    } catch (err) {
+        console.error('Scheduled Backup Error:', err);
+    }
+});
 
 await mongoose.connect(process.env.MONGO_URI)
     .then(() => {

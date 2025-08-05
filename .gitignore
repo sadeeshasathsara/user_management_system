@@ -63,3 +63,5 @@ Thumbs.db
 #uploads folder
 /uploads/*
 express_backend/src/uploads/
+/backups/*
+express_backend/backups/
