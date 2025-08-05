@@ -44,7 +44,7 @@ router.get('/stats/epf', verifyAuth, epfMonthlyContribution)
 
 router.get('/check-auth', verifyAuth, async (req, res) => {
     const admins = await getEmployeesByQuery({ email: req.user.email })
-    const admin = admins;
+    const admin = admins[0];
 
     res.status(200).json({
         success: true,
