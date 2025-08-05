@@ -837,7 +837,33 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                                                             </div>
                                                             <div>
                                                                 <span className="font-medium text-gray-600">Contact:</span>
-                                                                <span className="ml-1">{parent.contactNumber}</span>
+                                                                <span className="ml-1">{parent.contactNumber || `Not Available`}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {/* Parents */}
+                                    {employee.spouseParents && employee.spouseParents.length > 0 && (
+                                        <div>
+                                            <span className="text-sm font-medium text-gray-500 mb-2 block">Spouse Parents/Guardians</span>
+                                            <div className="space-y-2">
+                                                {employee.spouseParents.map((parent, index) => (
+                                                    <div key={index} className="bg-white p-3 rounded border border-gray-200">
+                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                                                            <div>
+                                                                <span className="font-medium text-gray-600">Name:</span>
+                                                                <span className="ml-1">{parent.name}</span>
+                                                            </div>
+                                                            <div>
+                                                                <span className="font-medium text-gray-600">Relationship:</span>
+                                                                <span className="ml-1">{parent.relationship}</span>
+                                                            </div>
+                                                            <div>
+                                                                <span className="font-medium text-gray-600">Contact:</span>
+                                                                <span className="ml-1">{parent.contactNumber || `Not Available`}</span>
                                                             </div>
                                                         </div>
                                                     </div>

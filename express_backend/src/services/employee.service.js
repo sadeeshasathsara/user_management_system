@@ -1,5 +1,6 @@
 import Employee from '../models/employee.model.js';
 import mongoose from 'mongoose';
+import EmployeeEpf from '../models/employeeEpf.model.js';
 
 export const createEmployee = async (data) => {
     if (!data || typeof data !== 'object') {
@@ -57,12 +58,18 @@ export const deleteEmployee = async (id) => {
 
     try {
         const deleted = await Employee.findByIdAndDelete(id);
-        if (!deleted) throw new Error('Employee not found for deletion');
+        if (!deleted) {
+            throw new Error('Employee not found for deletion');
+        }
+
+        const deletedEpfRecords = await EmployeeEpf.deleteMany({ user: id });
+
         return deleted;
     } catch (err) {
         throw new Error(`Failed to delete employee: ${err.message}`);
     }
 };
+
 
 export const getEmployeesByQuery = async (query) => {
     try {

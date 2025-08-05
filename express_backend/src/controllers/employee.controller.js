@@ -7,9 +7,20 @@ import {
     getEmployeesByQuery
 } from '../services/employee.service.js';
 
+const capitalizeWords = (str) => {
+    return str
+        .toLowerCase()
+        .replace(/\b\w/g, char => char.toUpperCase());
+};
+
 export const createEmployeeController = async (req, res) => {
     try {
         const employeeData = { ...req.body };
+
+        // Capitalize name
+        if (employeeData.name) {
+            employeeData.name = capitalizeWords(employeeData.name);
+        }
 
         // Parse stringified JSON fields
         if (employeeData.parents) {
@@ -18,6 +29,14 @@ export const createEmployeeController = async (req, res) => {
 
         if (employeeData.children) {
             employeeData.children = JSON.parse(employeeData.children);
+        }
+
+        if (employeeData.spouseParents) {
+            employeeData.spouseParents = JSON.parse(employeeData.spouseParents);
+        }
+
+        if (employeeData.spouseChildren) {
+            employeeData.spouseChildren = JSON.parse(employeeData.spouseChildren);
         }
 
         if (req.file) {
@@ -31,6 +50,7 @@ export const createEmployeeController = async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 };
+
 
 
 export const updateEmployeeController = async (req, res) => {

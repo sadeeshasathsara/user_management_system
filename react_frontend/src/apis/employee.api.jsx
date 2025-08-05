@@ -13,7 +13,11 @@ export const createEmployeeApi = async (data = {}) => {
         for (const key in data) {
             if (key === 'profilePicture' && data[key] instanceof File) {
                 formData.append('profilePicture', data[key]);
-            } else if (key === 'parents' || key === 'children') {
+            } else if (
+                key === 'parents' ||
+                key === 'children' ||
+                key === 'spouseParents'
+            ) {
                 formData.append(key, JSON.stringify(data[key]));
             } else {
                 formData.append(key, data[key]);
@@ -31,6 +35,7 @@ export const createEmployeeApi = async (data = {}) => {
         throw err.response?.data || { message: err.message };
     }
 };
+
 
 /**
  * Update an employee by ID (supports profile picture update)
