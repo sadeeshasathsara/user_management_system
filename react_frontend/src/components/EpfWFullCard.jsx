@@ -48,6 +48,8 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
     const location = useLocation();
     const navigate = useNavigate();
 
+
+
     // Set EPF records on component mount
     useEffect(() => {
         if (initialEpfRecords) {
@@ -56,6 +58,8 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
                 initialEpfRecords.data?.data || initialEpfRecords.data || [];
             setAllEpfRecords(records);
             setFilteredEpfRecords(records);
+            console.log(initialEpfRecords);
+
         } else {
             setAllEpfRecords([]);
             setFilteredEpfRecords([]);
@@ -103,6 +107,7 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
         const filtered = allEpfRecords.filter(record =>
             record.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             record.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            record.user?.epfNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             new Date(record.year).getFullYear().toString().includes(searchTerm)
         );
         setFilteredEpfRecords(filtered);
@@ -553,7 +558,7 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
                                                     <div className="flex-1">
                                                         <div className="flex items-center justify-between mb-3">
                                                             <div>
-                                                                <h3 className="font-bold text-lg text-gray-900">{record.user?.name || 'N/A'}</h3>
+                                                                <h3 className="font-bold text-lg text-gray-900">{`${record.user?.name} (EPF: ${record.user?.epfNumber})` || 'N/A'}</h3>
                                                                 <p className="text-sm text-gray-600">{record.user?.email || 'N/A'}</p>
                                                             </div>
                                                             <div className="text-right">

@@ -105,7 +105,7 @@ export const getEmployeeEpfs = async (query = {}) => {
         }
 
         const epfRecords = await EmployeeEpf.find(filter)
-            .populate("user", "name email")
+            .populate("user", "name email epfNumber")
             .sort({ year: 1 });
 
         const enrichedRecords = epfRecords.map(record => {
