@@ -12,6 +12,7 @@ import { createEmployeeController, deleteEmployeeController, getEmployeesControl
 import { createOrUpdateEmployeeEpfController, deleteEmployeeEpfExpenseController, getEmployeeEpfsController, getMaxEpfController, updateMaxEpfController } from '../controllers/epf.controller.js';
 import { getEmployeesByQuery } from '../services/employee.service.js';
 import { departmentStats, epfMonthlyContribution, statsController } from '../controllers/stats.controller.js';
+import { accountRecoveryController, recoveryUpdatePassword, updatePasswordController, validateOtpController } from '../controllers/recovery.controller.js';
 
 router.post('/login', loginController);
 router.post('/register', registerController);
@@ -41,6 +42,12 @@ router.delete('/admins', verifyAuth, deleteAccountController);
 router.get('/stats', verifyAuth, statsController);
 router.get('/stats/dep', verifyAuth, departmentStats)
 router.get('/stats/epf', verifyAuth, epfMonthlyContribution)
+
+router.post('/recovery/otp', accountRecoveryController);
+router.post('/recovery/validate-otp', validateOtpController);
+router.post('/recovery/update-pwd', recoveryUpdatePassword);
+
+router.put('/update-pwd', verifyAuth, updatePasswordController);
 
 router.get('/check-auth', verifyAuth, async (req, res) => {
     const admins = await getEmployeesByQuery({ email: req.user.email })

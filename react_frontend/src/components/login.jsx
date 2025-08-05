@@ -3,7 +3,7 @@ import { Eye, EyeOff, Mail, Lock, User, Shield, CheckCircle, XCircle } from 'luc
 import { useNavigate } from 'react-router-dom';
 import { loginApi } from '../apis/login.api';
 
-// Login UI Component
+// Professional Login UI Component
 const LoginUI = ({ forgotClicked = () => { } }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [formData, setFormData] = useState({
@@ -52,62 +52,91 @@ const LoginUI = ({ forgotClicked = () => { } }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center p-4">
-            <div className="absolute inset-0" style={{
-                backgroundImage: 'radial-gradient(circle, #3b82f6 1px, transparent 1px)',
-                backgroundSize: '20px 20px',
-                opacity: 0.05
-            }}></div>
+        <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
+            {/* Professional Gradient Background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900"></div>
 
-            <div className="relative w-full max-w-md">
-                <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-                    <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-10 text-center relative">
-                        <div className="absolute -top-4 -right-4 w-24 h-24 bg-white bg-opacity-10 rounded-full"></div>
-                        <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-white bg-opacity-5 rounded-full"></div>
+            {/* Animated Background Elements */}
+            <div className="absolute inset-0">
+                {/* Floating Orbs */}
+                <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+                <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
+
+                {/* Grid Pattern */}
+                <div className="absolute inset-0 opacity-10">
+                    <div className="absolute inset-0" style={{
+                        backgroundImage: `
+                            linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+                            linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px)
+                        `,
+                        backgroundSize: '50px 50px'
+                    }}></div>
+                </div>
+
+                {/* Geometric Shapes */}
+                <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400/60 rotate-45 animate-ping"></div>
+                <div className="absolute top-40 right-32 w-3 h-3 bg-indigo-400/60 rotate-45 animate-ping" style={{ animationDelay: '1s' }}></div>
+                <div className="absolute bottom-32 left-40 w-2 h-2 bg-purple-400/60 rotate-45 animate-ping" style={{ animationDelay: '3s' }}></div>
+                <div className="absolute bottom-20 right-20 w-3 h-3 bg-blue-400/60 rotate-45 animate-ping" style={{ animationDelay: '2s' }}></div>
+            </div>
+
+            {/* Glass Morphism Container */}
+            <div className="relative w-full max-w-sm z-10">
+                <div className="backdrop-blur-xl bg-white/10 rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+                    {/* Header Section */}
+                    <div className="relative px-6 py-6 text-center">
+                        {/* Background Decoration */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>
+                        <div className="absolute -top-4 -right-4 w-20 h-20 bg-blue-500/20 rounded-full blur-2xl"></div>
+                        <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-indigo-500/20 rounded-full blur-2xl"></div>
 
                         <div className="relative z-10">
-                            <div className="mx-auto w-16 h-16 bg-white bg-opacity-20 rounded-2xl flex items-center justify-center mb-4 backdrop-blur-sm">
-                                <Shield className="w-8 h-8 text-blue-600" />
+                            {/* Logo Container */}
+                            <div className="mx-auto w-14 h-14 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-2xl flex items-center justify-center mb-4 backdrop-blur-sm border border-white/20 shadow-lg">
+                                <Shield className="w-7 h-7 text-blue-300" />
                             </div>
 
-                            <h1 className="text-2xl font-bold text-white mb-2">Welcome Back</h1>
-                            <p className="text-blue-100 text-sm">Please sign in to your account</p>
+                            <h1 className="text-2xl font-bold text-white mb-2 tracking-tight">Welcome Back</h1>
+                            <p className="text-blue-200/80 text-sm font-medium">Please sign in to your account</p>
                         </div>
                     </div>
 
-                    <div className="px-8 py-8">
-                        <div className="space-y-6">
+                    {/* Form Section */}
+                    <div className="px-6 py-6 bg-white/5 backdrop-blur-sm">
+                        <div className="space-y-4">
                             {/* Message Display */}
                             {message && (
                                 <div className={`
-                                    flex items-center gap-3 p-4 rounded-lg border transition-all duration-300 transform
+                                    flex items-center gap-2 p-3 rounded-lg border backdrop-blur-sm transition-all duration-300 transform
                                     ${messageType === 'success'
-                                        ? 'bg-green-50 border-green-200 text-green-800'
-                                        : 'bg-red-50 border-red-200 text-red-800'
+                                        ? 'bg-green-500/20 border-green-400/30 text-green-200'
+                                        : 'bg-red-500/20 border-red-400/30 text-red-200'
                                     }
                                 `} style={{
                                         animation: 'messageSlideIn 0.3s ease-out'
                                     }}>
                                     <div className="flex-shrink-0">
                                         {messageType === 'success' ? (
-                                            <CheckCircle className="w-5 h-5 text-green-600" />
+                                            <CheckCircle className="w-4 h-4 text-green-400" />
                                         ) : (
-                                            <XCircle className="w-5 h-5 text-red-600" />
+                                            <XCircle className="w-4 h-4 text-red-400" />
                                         )}
                                     </div>
                                     <div className="flex-1">
-                                        <p className="text-sm font-medium">{message}</p>
+                                        <p className="text-xs font-medium">{message}</p>
                                     </div>
                                 </div>
                             )}
 
-                            <div className="space-y-2">
-                                <label htmlFor="email" className="text-sm font-medium text-gray-700 block">
+                            {/* Email Field */}
+                            <div className="space-y-1">
+                                <label htmlFor="email" className="text-xs font-semibold text-white/90 block">
                                     Email Address / EPF No
                                 </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <User className="h-5 w-5 text-gray-400" />
+                                        <User className="h-4 w-4 text-blue-500/70" />
                                     </div>
                                     <input
                                         id="email"
@@ -116,19 +145,20 @@ const LoginUI = ({ forgotClicked = () => { } }) => {
                                         required
                                         value={formData.email}
                                         onChange={handleInputChange}
-                                        className="w-full outline-none pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                                        className="w-full outline-none pl-10 pr-3 py-3 border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-200 bg-white/10 text-white placeholder-white/50 hover:bg-white/15 text-sm"
                                         placeholder="Enter your email"
                                     />
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label htmlFor="password" className="text-sm font-medium text-gray-700 block">
+                            {/* Password Field */}
+                            <div className="space-y-1">
+                                <label htmlFor="password" className="text-xs font-semibold text-white/90 block">
                                     Password
                                 </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <Lock className="h-5 w-5 text-gray-400" />
+                                        <Lock className="h-4 w-4 text-blue-500/70" />
                                     </div>
                                     <input
                                         id="password"
@@ -137,19 +167,20 @@ const LoginUI = ({ forgotClicked = () => { } }) => {
                                         required
                                         value={formData.password}
                                         onChange={handleInputChange}
-                                        className="w-full outline-none pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                                        className="w-full outline-none pl-10 pr-12 py-3 border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-200 bg-white/10 text-white placeholder-white/50 hover:bg-white/15 text-sm"
                                         placeholder="Enter your password"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-blue-300/70 hover:text-blue-300 transition-colors duration-200"
                                     >
-                                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                     </button>
                                 </div>
                             </div>
 
+                            {/* Remember Me & Forgot Password */}
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center">
                                     <input
@@ -158,30 +189,31 @@ const LoginUI = ({ forgotClicked = () => { } }) => {
                                         type="checkbox"
                                         checked={formData.rememberMe}
                                         onChange={handleInputChange}
-                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-colors duration-200"
+                                        className="h-3 w-3 text-blue-400 focus:ring-blue-400/50 border-white/30 rounded bg-white/10 transition-colors duration-200"
                                     />
-                                    <label htmlFor="rememberMe" className="ml-2 text-sm text-gray-600">
+                                    <label htmlFor="rememberMe" className="ml-2 text-xs text-white/80 font-medium">
                                         Remember me
                                     </label>
                                 </div>
                                 <button
                                     onClick={forgotClicked}
                                     type="button"
-                                    className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors duration-200"
+                                    className="text-xs text-blue-300 hover:text-blue-200 font-semibold transition-colors duration-200 hover:underline"
                                 >
                                     Forgot password?
                                 </button>
                             </div>
 
+                            {/* Submit Button */}
                             <button
                                 type="submit"
                                 disabled={isLoading}
                                 onClick={handleSubmit}
-                                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
+                                className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:ring-offset-2 focus:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl text-sm"
                             >
                                 {isLoading ? (
                                     <div className="flex items-center justify-center">
-                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
@@ -195,8 +227,9 @@ const LoginUI = ({ forgotClicked = () => { } }) => {
                     </div>
                 </div>
 
-                <div className="mt-8 text-center">
-                    <p className="text-xs text-gray-500">
+                {/* Footer */}
+                <div className="mt-4 text-center">
+                    <p className="text-xs text-white/60 font-medium">
                         © 2025 UMS Dashboard. All rights reserved.
                     </p>
                 </div>
@@ -212,6 +245,24 @@ const LoginUI = ({ forgotClicked = () => { } }) => {
                         opacity: 1;
                         transform: translateY(0);
                     }
+                }
+                
+                /* Custom scrollbar for the page */
+                ::-webkit-scrollbar {
+                    width: 8px;
+                }
+                
+                ::-webkit-scrollbar-track {
+                    background: rgba(0, 0, 0, 0.1);
+                }
+                
+                ::-webkit-scrollbar-thumb {
+                    background: rgba(59, 130, 246, 0.3);
+                    border-radius: 4px;
+                }
+                
+                ::-webkit-scrollbar-thumb:hover {
+                    background: rgba(59, 130, 246, 0.5);
                 }
             `}</style>
         </div>

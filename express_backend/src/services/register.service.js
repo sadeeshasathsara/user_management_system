@@ -28,6 +28,22 @@ export const registerAdmin = async ({ email, password, epfNo }) => {
     return newAdmin;
 };
 
+export const updatePassword = async (email, password) => {
+    try {
+        const admin = await Admin.findOne({ email });
+        if (!admin) throw new Error('Account not found (2.0)');
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        admin.password = hashedPassword;
+
+        await admin.save();
+        return { success: true };
+    } catch (e) {
+        return { success: false, message: e.message };
+    }
+};
+
+
 export const getAdmins = async (query = {}) => {
     try {
         const admins = await Admin.find(query);

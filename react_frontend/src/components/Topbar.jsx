@@ -5,6 +5,7 @@ import { getEmployeesApi } from '../apis/employee.api';
 import { fetchDepartmentsApi } from '../apis/department.api';
 import { getEmpEpf } from '../apis/epf.api';
 import { useUserStore } from '../tools/user.zustand';
+import { useNavigate } from 'react-router-dom';
 
 const SearchModal = ({ isOpen, onClose }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -546,7 +547,8 @@ const Topbar = ({ setSidebarOpen, currentPage }) => {
             'admins': 'Admin Management',
             'admins/add': 'Add New Admin',
             'settings/epf': 'EPF Configuration',
-            'reports': 'Reports & Analytics'
+            'reports': 'Reports & Analytics',
+            'profile': 'Administrator Profile'
         };
         return titles[path] || 'Dashboard';
     };
@@ -592,8 +594,10 @@ const Topbar = ({ setSidebarOpen, currentPage }) => {
         setIsProfileDropdownOpen(!isProfileDropdownOpen);
     };
 
+    const navigate = useNavigate()
+
     const handleProfileClick = () => {
-        console.log('Profile clicked');
+        navigate('/profile')
         setIsProfileDropdownOpen(false);
     };
 

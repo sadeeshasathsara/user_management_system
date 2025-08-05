@@ -17,6 +17,7 @@ import Reports from './pages/dashboard/reports';
 import Login from './pages/auth';
 import ProtectRoutes from './components/ProtectRoutes';
 import 'react-phone-input-2/lib/style.css';
+import AdminProfilePage from './pages/AdminProfilePage';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -234,6 +235,15 @@ function App() {
           <ProtectRoutes>
             <DashboardWrapper>
               <Reports currentPath="reports" />
+            </DashboardWrapper>
+          </ProtectRoutes>
+        } />
+
+        {/* Profile Route */}
+        <Route path="/profile" element={
+          <ProtectRoutes>
+            <DashboardWrapper>
+              <AdminProfilePage currentPath="profile" />
             </DashboardWrapper>
           </ProtectRoutes>
         } />
