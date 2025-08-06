@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const employee = new mongoose.Schema({
+const employeeSchema = new mongoose.Schema({
     epfNumber: {
         type: String,
         required: true,
@@ -58,6 +58,27 @@ const employee = new mongoose.Schema({
             return this.maritalStatus === 'Married';
         },
     },
+    spouseParents: {
+        type: [
+            {
+                name: {
+                    type: String,
+                    required: true
+                },
+                relationship: {
+                    type: String,
+                    enum: ['Father-in-low', 'Mother-in-low', 'Guardian'],
+                    required: true
+                },
+                contactNumber: {
+                    type: String,
+                }
+            }
+        ],
+        required: function () {
+            return this.maritalStatus === 'Married';
+        }
+    },
     parents: {
         type: [
             {
@@ -72,13 +93,9 @@ const employee = new mongoose.Schema({
                 },
                 contactNumber: {
                     type: String,
-                    required: true
                 }
             }
-        ],
-        required: function () {
-            return this.maritalStatus === 'Unmarried';
-        }
+        ]
     },
     children: [
         {
@@ -98,5 +115,5 @@ const employee = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-const Employee = mongoose.model('User', employeeSchema);
+const Employee = mongoose.model('Employee', employeeSchema);
 export default Employee;

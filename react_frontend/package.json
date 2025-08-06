@@ -11,11 +11,15 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.11",
+    "axios": "^1.11.0",
     "lucide-react": "^0.534.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-phone-input-2": "^2.15.1",
     "react-router-dom": "^7.7.1",
-    "tailwindcss": "^4.1.11"
+    "recharts": "^3.1.0",
+    "tailwindcss": "^4.1.11",
+    "zustand": "^5.0.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",

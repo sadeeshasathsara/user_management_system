@@ -1,6 +1,7 @@
 import React from 'react';
 import Tab from '../../../layout/Tab';
 import TabHeader from '../../../components/TabHeader';
+import EPFConfigForm from '../../../components/UpdateEpfConfiguration';
 
 const EPFSettings = ({ currentPath }) => (
     <Tab>
@@ -9,8 +10,8 @@ const EPFSettings = ({ currentPath }) => (
             subtitle="Configure EPF settings and maximum values"
             currentPath={currentPath}
         />
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <p className="text-gray-600">EPF configuration settings will be implemented here...</p>
+        <div className="">
+            <EPFConfigForm />
         </div>
     </Tab>
 );
