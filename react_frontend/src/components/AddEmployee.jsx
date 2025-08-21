@@ -445,6 +445,10 @@ const AddEmployeeForm = ({ onBack }) => {
             newErrors.department = 'Department is required';
         }
 
+        if (!formData.dateOfBirth) {
+            newErrors.dateOfBirth = 'Date of Birth is required';
+        }
+
         if (!formData.contactNumber.trim()) {
             newErrors.contactNumber = 'Contact number is required';
         } else {
@@ -467,6 +471,16 @@ const AddEmployeeForm = ({ onBack }) => {
         // Email validation
         if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             newErrors.email = 'Please enter a valid email address';
+        }
+
+        //Joined date
+        if (!formData.joinedDate) {
+            newErrors.joinedDate = 'Joined date is required';
+        }
+
+        //Gender
+        if (!formData.gender) {
+            newErrors.gender = 'Gender is required';
         }
 
         // Parents validation (required for everyone)
@@ -548,6 +562,7 @@ const AddEmployeeForm = ({ onBack }) => {
             showToast('success', `Employee "${formData.name}" created successfully!`);
             handleReset();
         } catch (err) {
+            setLoading(true);
             console.error('Error creating employee:', err);
             const msg = err.message || 'Failed to create employee';
             showToast('error', msg);
@@ -824,7 +839,7 @@ const AddEmployeeForm = ({ onBack }) => {
                                 {/* Gender */}
                                 <div>
                                     <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Gender
+                                        Gender <span className="text-red-500">*</span>
                                     </label>
                                     <select
                                         id="gender"
@@ -844,7 +859,7 @@ const AddEmployeeForm = ({ onBack }) => {
                                 {/* Date of Birth */}
                                 <div>
                                     <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Date of Birth
+                                        Date of Birth <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="date"
@@ -937,7 +952,7 @@ const AddEmployeeForm = ({ onBack }) => {
                                 {/* Joined Date */}
                                 <div>
                                     <label htmlFor="joinedDate" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Joined Date
+                                        Joined Date <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="date"
@@ -954,7 +969,7 @@ const AddEmployeeForm = ({ onBack }) => {
                                 {/* Employment Type */}
                                 <div>
                                     <label htmlFor="employmentType" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Employment Type
+                                        Employment Type <span className="text-red-500">*</span>
                                     </label>
                                     <select
                                         id="employmentType"

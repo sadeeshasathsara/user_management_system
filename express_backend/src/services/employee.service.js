@@ -3,16 +3,38 @@ import mongoose from 'mongoose';
 import EmployeeEpf from '../models/employeeEpf.model.js';
 
 export const createEmployee = async (data) => {
-    if (!data || typeof data !== 'object') {
-        throw new Error('Invalid employee data');
+    if (!data || typeof data !== "object") {
+        throw new Error("Invalid employee data");
     }
 
+    // Recursively sanitize values
+    const sanitize = (obj) => {
+        if (Array.isArray(obj)) {
+            return obj.map(sanitize);
+        } else if (obj !== null && typeof obj === "object") {
+            return Object.fromEntries(
+                Object.entries(obj).map(([key, value]) => [key, sanitize(value)])
+            );
+        } else {
+            // Handle bad values
+            if (obj === undefined || obj === null) return null;
+            if (typeof obj === "string") {
+                if (obj.trim().toLowerCase() === "undefined") return null;
+                if (obj.trim() === "") return null;
+            }
+            return obj;
+        }
+    };
+
+    const sanitizedData = sanitize(data);
+
     try {
-        return await Employee.create(data);
+        return await Employee.create(sanitizedData);
     } catch (err) {
         throw new Error(`Failed to create employee: ${err.message}`);
     }
 };
+
 
 export const updateEmployee = async (id, data) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
