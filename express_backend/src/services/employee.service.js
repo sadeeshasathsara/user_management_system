@@ -38,34 +38,61 @@ export const createEmployee = async (data) => {
 
 export const updateEmployee = async (id, data) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw new Error('Invalid employee ID');
+        throw new Error("Invalid employee ID");
     }
 
-    if (!data || typeof data !== 'object') {
-        throw new Error('No update data provided');
+    if (!data || typeof data !== "object") {
+        throw new Error("No update data provided");
     }
+
+    // Recursively sanitize values
+    const sanitize = (obj, schema) => {
+        if (Array.isArray(obj)) {
+            return obj.map(item => sanitize(item, schema));
+        } else if (obj !== null && typeof obj === "object") {
+            return Object.fromEntries(
+                Object.entries(obj).map(([key, value]) => {
+                    const schemaType = schema?.paths?.[key]?.instance;
+                    return [key, sanitize(value, schemaType)];
+                })
+            );
+        } else {
+            // Handle bad values
+            if (obj === undefined || obj === null) return null;
+
+            if (typeof obj === "string") {
+                const trimmed = obj.trim().toLowerCase();
+                if (trimmed === "" || trimmed === "undefined" || trimmed === "null") return null;
+
+                // Convert numeric strings to actual numbers for Number fields
+                if (schema === "Number" && !isNaN(Number(obj))) return Number(obj);
+            }
+
+            // If schema type is Number but value is still not a number, set null
+            if (schema === "Number" && typeof obj !== "number") return null;
+
+            return obj;
+        }
+    };
+
 
     try {
-        const updateData = {};
+        // Sanitize incoming data
+        const sanitizedData = sanitize(data);
 
-        // Filter out undefined or null fields
-        for (const key in data) {
-            if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
-                // Special case: profilePicture — extract filename if full URL is passed
-                if (key === 'profilePicture' && typeof data[key] === 'string') {
-                    updateData[key] = data[key].includes('/') ? data[key].split('/').pop() : data[key];
-                } else {
-                    updateData[key] = data[key];
-                }
-            }
+        // Special case: profilePicture — extract filename if full URL is passed
+        if (sanitizedData.profilePicture && typeof sanitizedData.profilePicture === "string") {
+            sanitizedData.profilePicture = sanitizedData.profilePicture.includes("/")
+                ? sanitizedData.profilePicture.split("/").pop()
+                : sanitizedData.profilePicture;
         }
 
-        const updated = await Employee.findByIdAndUpdate(id, updateData, {
+        const updated = await Employee.findByIdAndUpdate(id, sanitizedData, {
             new: true,
             runValidators: true,
         });
 
-        if (!updated) throw new Error('Employee not found for update');
+        if (!updated) throw new Error("Employee not found for update");
         return updated;
     } catch (err) {
         throw new Error(`Failed to update employee: ${err.message}`);
