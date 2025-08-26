@@ -430,7 +430,7 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                     <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
                         <div className="flex items-center space-x-4">
                             <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-md">
-                                {employee.profilePicture ? (
+                                {employee.profilePicture && !employee.profilePicture.endsWith('/null') ? (
                                     <img
                                         src={employee.profilePicture}
                                         alt={employee.name}
@@ -439,6 +439,7 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                                 ) : (
                                     <User className="w-8 h-8 text-white" />
                                 )}
+
                             </div>
                             <div>
                                 <h2 className="text-2xl font-bold text-gray-900">{employee.name}</h2>
