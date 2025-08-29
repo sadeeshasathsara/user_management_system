@@ -885,7 +885,7 @@ const AddEmployeeForm = ({ onBack }) => {
                                 {/* Department with Search */}
                                 <div className="relative">
                                     <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Department <span className="text-red-500">*</span>
+                                        Department and Location <span className="text-red-500">*</span>
                                     </label>
                                     <div className="relative">
                                         <input
