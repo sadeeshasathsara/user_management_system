@@ -430,7 +430,7 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                     <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
                         <div className="flex items-center space-x-4">
                             <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-md">
-                                {employee.profilePicture ? (
+                                {employee.profilePicture && !employee.profilePicture.endsWith('/null') ? (
                                     <img
                                         src={employee.profilePicture}
                                         alt={employee.name}
@@ -439,6 +439,7 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                                 ) : (
                                     <User className="w-8 h-8 text-white" />
                                 )}
+
                             </div>
                             <div>
                                 <h2 className="text-2xl font-bold text-gray-900">{employee.name}</h2>
@@ -643,6 +644,10 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                                         <p className="text-gray-900">{employee.epfNumber}</p>
                                     </div>
                                     <div>
+                                        <span className="text-sm font-medium text-gray-500">Main Location</span>
+                                        <p className="text-gray-900">{employee?.mainLocation || 'N/A'}</p>
+                                    </div>
+                                    <div>
                                         <span className="text-sm font-medium text-gray-500">Department</span>
                                         <p className="text-gray-900">{employee.department?.name || 'N/A'}</p>
                                     </div>
@@ -674,6 +679,26 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
 
                                         className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     />
+                                    <select
+                                        id="mainLocation"
+                                        name="mainLocation"
+                                        value={editData.employment?.mainLocation || ''}  // ✅ Correct reference
+                                        onChange={(e) =>
+                                            setEditData({
+                                                ...editData,
+                                                employment: {
+                                                    ...editData.employment,
+                                                    mainLocation: e.target.value   // ✅ Correct structure
+                                                }
+                                            })
+                                        }
+                                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    >
+                                        <option value="">Select Main Location</option>
+                                        <option value="Head Office">Head Office</option>
+                                        <option value="Rathmalana">Rathmalana</option>
+                                        <option value="Osusala">Osusala</option>
+                                    </select>
                                     <select
                                         id="department"
                                         name="department"

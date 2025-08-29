@@ -63,7 +63,7 @@ router.get('/check-auth', verifyAuth, async (req, res) => {
         user: {
             _id: req.user._id,
             email: req.user.email,
-            name: admin.name
+            name: admin?.name
         }
     });
 });

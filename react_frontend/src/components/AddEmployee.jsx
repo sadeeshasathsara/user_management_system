@@ -13,6 +13,7 @@ const AddEmployeeForm = ({ onBack }) => {
         nicNumber: '',
         gender: '',
         email: '',
+        mainLocation: '',
         department: '',
         joinedDate: '',
         basicSalary: '',
@@ -881,6 +882,33 @@ const AddEmployeeForm = ({ onBack }) => {
                                         </p>
                                     )}
                                 </div>
+
+                                {/* Main Location */}
+                                <div>
+                                    <label htmlFor="mainLocation" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Main Location <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        id="mainLocation"
+                                        name="mainLocation"
+                                        value={formData.mainLocation}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 focus:outline-none"
+                                        disabled={loading}
+                                    >
+                                        <option value="">Select Location</option>
+                                        <option value="Head Office">Head Office</option>
+                                        <option value="Rathmalana">Rathmalana</option>
+                                        <option value="Osusala">Osusala</option>
+                                    </select>
+                                    {errors.mainLocation && (
+                                        <p className="mt-2 text-sm text-red-600 flex items-center space-x-1">
+                                            <AlertCircle className="w-4 h-4" />
+                                            <span>{errors.mainLocation}</span>
+                                        </p>
+                                    )}
+                                </div>
+
 
                                 {/* Department with Search */}
                                 <div className="relative">

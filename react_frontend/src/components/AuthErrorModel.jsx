@@ -85,10 +85,16 @@ const AuthErrorModal = ({
 
     const errorDetails = getErrorDetails();
 
+    const closeModel = () => {
+        window.location.href = "/login"
+    }
+
     return (
         <div className="auth-error-overlay">
+
             <div className="auth-error-backdrop" />
-            <div className="auth-error-modal">
+            <div className="auth-error-modal rounded">
+                <div onClick={closeModel} className='font-bold absolute right-3 top-2 cursor-pointer rounded-full text-red-500 '>X</div>
                 <div className="auth-error-header">
                     <div className="auth-error-icon">
                         <div className="pulse-ring"></div>

@@ -17,8 +17,7 @@ const employeeSchema = new mongoose.Schema({
         type: Date,
     },
     nicNumber: {
-        type: String,
-        unique: true,
+        type: String
     },
     gender: {
         type: String,
@@ -28,6 +27,10 @@ const employeeSchema = new mongoose.Schema({
         type: String,
         lowercase: true,
         trim: true,
+    },
+    mainLocation: {
+        type: String,
+        enum: ['Head Office', 'Rathmalana', 'Osusala'],
     },
     department: {
         type: mongoose.Schema.Types.ObjectId,
