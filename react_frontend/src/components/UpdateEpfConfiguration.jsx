@@ -309,7 +309,7 @@ const EPFConfigForm = () => {
                 );
                 setOriginalRanges(validRanges);
 
-                showNotification('success', response.message || 'EPF configuration updated successfully! Changes are now active.');
+                showNotification('success', response.message || 'Medical configuration updated successfully! Changes are now active.');
                 setErrors({});
                 setRangeErrors({});
 
@@ -320,11 +320,11 @@ const EPFConfigForm = () => {
                     setErrors(response.errors);
                     showNotification('error', 'Please fix the validation errors and try again');
                 } else {
-                    showNotification('error', response.message || 'Failed to update EPF configuration');
+                    showNotification('error', response.message || 'Failed to update Medical configuration');
                 }
             }
         } catch (error) {
-            console.error('Error updating EPF config:', error);
+            console.error('Error updating Medical config:', error);
 
             if (error.response) {
                 // Server responded with error status
@@ -386,14 +386,14 @@ const EPFConfigForm = () => {
                                 <Settings className="w-5 h-5 text-white" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold text-gray-900">EPF Configuration</h2>
+                                <h2 className="text-xl font-bold text-gray-900">Medical Configuration</h2>
                                 <p className="text-sm text-gray-600">Loading current settings...</p>
                             </div>
                         </div>
                     </div>
                     <div className="p-8 text-center">
                         <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                        <p className="text-gray-600">Fetching EPF configuration...</p>
+                        <p className="text-gray-600">Fetching Medical configuration...</p>
                     </div>
                 </div>
             </div>
@@ -431,7 +431,7 @@ const EPFConfigForm = () => {
                         <div className="flex-1">
                             <h3 className="text-lg font-bold text-red-900 mb-1">⚠️ Critical System Configuration</h3>
                             <p className="text-red-800 text-sm leading-relaxed">
-                                <strong>WARNING:</strong> Modifying the maximum EPF value affects all employee accounts system-wide.
+                                <strong>WARNING:</strong> Modifying the maximum Medical value affects all employee accounts system-wide.
                                 This change is immediate and irreversible. Ensure you understand the implications before proceeding.
                             </p>
                         </div>
@@ -447,7 +447,7 @@ const EPFConfigForm = () => {
                                     <Settings className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-bold text-gray-900">EPF Configuration</h2>
+                                    <h2 className="text-xl font-bold text-gray-900">Medical Configuration</h2>
                                     <p className="text-sm text-red-600 font-medium">⚠️ System-wide settings</p>
                                 </div>
                             </div>
@@ -469,7 +469,7 @@ const EPFConfigForm = () => {
                                 <div className="flex items-center space-x-3">
                                     <Database className="w-5 h-5 text-gray-600" />
                                     <div>
-                                        <p className="text-sm font-medium text-gray-700">Current Maximum EPF Value</p>
+                                        <p className="text-sm font-medium text-gray-700">Current Maximum Medical Value</p>
                                         <p className="text-2xl font-bold text-gray-900">
                                             {originalMaxEpf ? `${originalMaxEpf}` : 'Not Set'}
                                         </p>
@@ -491,7 +491,7 @@ const EPFConfigForm = () => {
                             <label htmlFor="maxEpf" className="block text-sm font-medium text-gray-700 mb-2">
                                 <div className="flex items-center space-x-2">
                                     <Lock className="w-4 h-4 text-red-500" />
-                                    <span>Maximum EPF Value <span className="text-red-500">*</span></span>
+                                    <span>Maximum Medical Value <span className="text-red-500">*</span></span>
                                 </div>
                             </label>
                             <div className="relative">
@@ -542,7 +542,7 @@ const EPFConfigForm = () => {
                                 )}
                                 <Users className="w-5 h-5 text-blue-600" />
                                 <div className="flex-1 text-left">
-                                    <h3 className="text-lg font-semibold text-blue-900">EPF Range Management</h3>
+                                    <h3 className="text-lg font-semibold text-blue-900">Medical Range Management</h3>
                                     <p className="text-sm text-blue-700">Configure EPF number ranges for different employee categories (Optional)</p>
                                 </div>
                                 <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full">
@@ -557,7 +557,7 @@ const EPFConfigForm = () => {
                                 <div className="flex items-center justify-between">
                                     <div className='w-full flex items-center justify-between'>
                                         <div className=''>
-                                            <h4 className="text-lg font-semibold text-blue-900">Configure EPF Ranges</h4>
+                                            <h4 className="text-lg font-semibold text-blue-900">Configure Medical Ranges</h4>
                                             <p className="text-sm text-blue-700 mt-1">Define EPF number ranges for different employee levels or departments</p>
                                         </div>
                                         {/* Custom Range Button */}
@@ -807,7 +807,7 @@ const EPFConfigForm = () => {
                                     </div>
                                     {epfRanges.filter(r => r.name.trim() && r.maxValue.trim()).length > 0 && (
                                         <div className="border-t border-gray-200 pt-3">
-                                            <div className="text-sm font-medium text-blue-700 mb-2">EPF Ranges to be configured:</div>
+                                            <div className="text-sm font-medium text-blue-700 mb-2">Medical Ranges to be configured:</div>
                                             <div className="space-y-1">
                                                 {epfRanges
                                                     .filter(r => r.name.trim() && r.maxValue.trim())
@@ -884,7 +884,7 @@ const EPFConfigForm = () => {
                         <div className="text-sm text-blue-800">
                             <p className="font-medium mb-2">Best Practices:</p>
                             <ul className="list-disc list-inside space-y-1 text-blue-700">
-                                <li>Set the maximum EPF value higher than your current highest employee EPF number</li>
+                                <li>Set the maximum Medical value higher than your current highest employee EPF number</li>
                                 <li>Consider future growth when setting this limit</li>
                                 <li>Use EPF ranges to organize employees by level, department, or joining date</li>
                                 <li>Ensure ranges don't overlap and are in ascending order</li>

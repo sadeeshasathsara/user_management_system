@@ -639,7 +639,7 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
                                                             <BarChart3 className="w-5 h-5 text-white" />
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-semibold text-green-800 mb-4">EPF Usage Overview</p>
+                                                            <p className="text-sm font-semibold text-green-800 mb-4">Medical Usage Overview</p>
                                                             <div className="space-y-4">
                                                                 <ProgressBar
                                                                     percentage={usagePercentage}
@@ -672,7 +672,7 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
                                                                 <Target className="w-5 h-5 text-white" />
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="text-sm font-semibold text-purple-800 mb-4">Range Expenses</p>
+                                                                <p className="text-sm font-semibold text-purple-800 mb-4">Local Medicine Details</p>
                                                                 <div className="space-y-4">
                                                                     {record.rangeExpenses.map((range, rangeIndex) => (
                                                                         <div key={rangeIndex} className="bg-white/90 rounded-lg p-4 border border-purple-100">
@@ -730,7 +730,7 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
                                                             </div>
                                                             <div className="flex-1 min-w-0">
                                                                 <div className="flex justify-between items-center mb-4">
-                                                                    <p className="text-sm font-semibold text-orange-800">Regular Expenses</p>
+                                                                    <p className="text-sm font-semibold text-orange-800">English medicine Details</p>
                                                                     <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-medium">
                                                                         {formatCurrency(record.regularExpenses.expense || 0)}
                                                                     </span>

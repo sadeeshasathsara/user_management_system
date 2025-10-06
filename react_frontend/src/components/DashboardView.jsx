@@ -257,7 +257,7 @@ const DashboardView = () => {
                     >
                         <div className="flex items-center space-x-2">
                             <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                            <span className="text-sm font-medium">New EPF</span>
+                            <span className="text-sm font-medium">New Medical</span>
                         </div>
                     </div>
 
@@ -287,7 +287,7 @@ const DashboardView = () => {
                     >
                         <div className="flex items-center space-x-2">
                             <Settings className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                            <span className="text-sm font-medium">EPF Config</span>
+                            <span className="text-sm font-medium">Medical Config</span>
                         </div>
                     </div>
 
@@ -359,7 +359,7 @@ const DashboardView = () => {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <div className="flex items-center justify-between mb-6">
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-1">EPF Contributions</h3>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-1">Medical Contributions</h3>
                                 <p className="text-gray-600 text-sm">Monthly contribution trends</p>
                             </div>
                             <div className="flex items-center space-x-2 text-sm">
@@ -401,13 +401,13 @@ const DashboardView = () => {
                                 </div>
                                 <div className="flex-1">
                                     <h4 className="text-sm font-semibold text-gray-900 mb-2">About This Chart</h4>
-                                    <p className="text-sm text-gray-700 leading-relaxed mb-3">
-                                        This area chart displays the <span className="font-medium text-blue-700">Employee Provident Fund (EPF) contributions</span> received by employees on a monthly basis throughout the year. The chart visualizes the total EPF amounts distributed to all employees each month, helping you track contribution patterns and identify seasonal trends.
-                                    </p>
+                                   <p className="text-sm text-gray-700 leading-relaxed mb-3">
+                                 This area chart displays the <span className="font-medium text-blue-700">yearly medical bill reimbursements</span> provided to employees. The chart visualizes the total medical expenses covered by the company each year, helping you track healthcare support trends and identify variations over time.
+                                </p>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-gray-600">
                                         <div className="flex items-center space-x-2">
                                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                            <span><strong>Peak contributions:</strong> Identify months with highest EPF payouts</span>
+                                            <span><strong>Peak contributions:</strong> Identify months with highest Medical payouts</span>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <div className="w-2 h-2 bg-amber-500 rounded-full"></div>

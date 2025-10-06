@@ -132,7 +132,7 @@ const AddEpfForm = ({ onBack }) => {
 
     // Real-time validation functions
     const validateExpense = (value) => {
-        if (!value) return 'EPF expense is required';
+        if (!value) return 'Medical expense is required';
 
         const numValue = parseFloat(value);
         if (isNaN(numValue)) {
@@ -160,7 +160,7 @@ const AddEpfForm = ({ onBack }) => {
 
         // Validate against max EPF
         if (maxEpf && numValue > maxEpf) {
-            return `Expense cannot exceed maximum EPF limit of LKR ${maxEpf.toLocaleString()}`;
+            return `Expense cannot exceed maximum Medical limit of LKR ${maxEpf.toLocaleString()}`;
         }
 
         return '';
@@ -435,7 +435,7 @@ const AddEpfForm = ({ onBack }) => {
             const response = await createOrUpdateEmployeeEpf(payload, "add");
 
             if (response.success) {
-                showNotification('success', 'EPF record submitted successfully!');
+                showNotification('success', 'Medical record submitted successfully!');
                 handleReset();
             } else {
                 showNotification('error', response.message || 'Submission failed. Try again.');
@@ -549,7 +549,7 @@ const AddEpfForm = ({ onBack }) => {
                         <div className="border-b border-gray-200 pb-6">
                             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
                                 <DollarSign className="w-5 h-5 text-blue-600" />
-                                <span>Add EPF Record</span>
+                                <span>Add Medical Record</span>
                             </h3>
                         </div>
 
@@ -748,9 +748,9 @@ const AddEpfForm = ({ onBack }) => {
                             )}
                         </div>
 
-                        {/* EPF Range Selection */}
+                        {/* Medical Range Selection */}
                         <div className="border-b border-gray-200 pb-6">
-                            <h4 className="text-md font-medium text-gray-700 mb-4">EPF Range Selection (Optional)</h4>
+                            <h4 className="text-md font-medium text-gray-700 mb-4">Medical Range Selection (Optional)</h4>
 
                             {rangesLoading ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -814,7 +814,7 @@ const AddEpfForm = ({ onBack }) => {
                             ) : (
                                 <div className="text-center py-8 text-gray-500">
                                     <Target className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                                    <p>No EPF ranges available</p>
+                                    <p>No Medical ranges available</p>
                                 </div>
                             )}
                         </div>
@@ -823,14 +823,14 @@ const AddEpfForm = ({ onBack }) => {
                         <div className="border-b border-gray-200 pb-6">
                             <div className="flex items-center space-x-2 mb-4">
                                 <DollarSign className="w-5 h-5 text-emerald-600" />
-                                <h4 className="text-md font-semibold text-gray-800">EPF Details</h4>
+                                <h4 className="text-md font-semibold text-gray-800">Medical Details</h4>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* EPF Expense */}
                                 <div>
                                     <label htmlFor="expense" className="block text-sm font-semibold text-gray-700 mb-2">
-                                        EPF Expense (LKR) <span className="text-red-500">*</span>
+                                        Medical Expense (LKR) <span className="text-red-500">*</span>
                                     </label>
                                     <div className="relative">
                                         <input
@@ -900,7 +900,7 @@ const AddEpfForm = ({ onBack }) => {
                                     </div>
                                     <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
                                         <p className="text-sm text-blue-700">
-                                            EPF records are created for the current year ({currentYear})
+                                            Medical records are created for the current year ({currentYear})
                                         </p>
                                     </div>
                                 </div>
@@ -931,7 +931,7 @@ const AddEpfForm = ({ onBack }) => {
                                 ) : (
                                     <>
                                         <Save className="w-5 h-5" />
-                                        <span>Create EPF Record</span>
+                                        <span>Create Medical Record</span>
                                     </>
                                 )}
                             </button>
@@ -946,7 +946,7 @@ const AddEpfForm = ({ onBack }) => {
                             <AlertCircle className="w-6 h-6 text-blue-600 flex-shrink-0" />
                         </div>
                         <div className="text-sm text-blue-800 flex-1">
-                            <p className="font-semibold text-lg mb-3 text-blue-900">EPF Record Guidelines</p>
+                            <p className="font-semibold text-lg mb-3 text-blue-900">Medical Record Guidelines</p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <ul className="space-y-2 text-blue-700">
                                     <li className="flex items-start space-x-2">
@@ -959,7 +959,7 @@ const AddEpfForm = ({ onBack }) => {
                                     </li>
                                     <li className="flex items-start space-x-2">
                                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-                                        <span><strong>EPF Expense:</strong> Must be a positive number with maximum 2 decimal places</span>
+                                        <span><strong>Medical Expense:</strong> Must be a positive number with maximum 2 decimal places</span>
                                     </li>
                                     <li className="flex items-start space-x-2">
                                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
@@ -969,7 +969,7 @@ const AddEpfForm = ({ onBack }) => {
                                 <ul className="space-y-2 text-blue-700">
                                     <li className="flex items-start space-x-2">
                                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-                                        <span><strong>Overall Limits:</strong> Maximum EPF expense is LKR {maxEpf.toLocaleString()}, system limit is LKR 1,000,000</span>
+                                        <span><strong>Overall Limits:</strong> Maximum Medical expense is LKR {maxEpf.toLocaleString()}, system limit is LKR 1,000,000</span>
                                     </li>
                                     <li className="flex items-start space-x-2">
                                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
@@ -977,7 +977,7 @@ const AddEpfForm = ({ onBack }) => {
                                     </li>
                                     <li className="flex items-start space-x-2">
                                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-                                        <span><strong>Employee History:</strong> View existing EPF expenses and range breakdowns</span>
+                                        <span><strong>Employee History:</strong> View existing Medical expenses and range breakdowns</span>
                                     </li>
                                     <li className="flex items-start space-x-2">
                                         <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-2 flex-shrink-0"></div>

@@ -36,12 +36,12 @@ const Sidebar = ({ currentPage, setCurrentPage, sidebarOpen, setSidebarOpen }) =
         },
         {
             id: 'epf',
-            label: 'EPF',
+            label: 'Medical',
             icon: Shield,
             path: 'epf',
             subItems: [
-                { id: 'epf-list', label: 'View EPF Records', path: 'epf' },
-                { id: 'epf-add', label: 'Add EPF Entry', path: 'epf/add' }
+                { id: 'epf-list', label: 'View Medical Records', path: 'epf' },
+                { id: 'epf-add', label: 'Add Medical Entry', path: 'epf/add' }
             ]
         },
         {
@@ -60,7 +60,7 @@ const Sidebar = ({ currentPage, setCurrentPage, sidebarOpen, setSidebarOpen }) =
             icon: Settings,
             path: 'settings',
             subItems: [
-                { id: 'settings-epf', label: 'EPF Configuration', path: 'settings/epf' }
+                { id: 'settings-epf', label: 'Medical Configuration', path: 'settings/epf' }
             ]
         },
         { id: 'reports', label: 'Reports', icon: BarChart3, path: 'reports' }

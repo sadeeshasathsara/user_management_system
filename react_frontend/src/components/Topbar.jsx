@@ -377,7 +377,7 @@ const SearchModal = ({ isOpen, onClose }) => {
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Search employees, departments, EPF records by name, EPF number, year..."
+                                    placeholder="Search employees, departments, Medical records by name, EPF number, year..."
                                     className="w-full pl-12 pr-4 py-4 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 backdrop-blur-sm"
                                 />
                                 {loading && (
