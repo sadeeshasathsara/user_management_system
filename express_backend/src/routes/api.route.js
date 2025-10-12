@@ -15,6 +15,7 @@ import { departmentStats, epfMonthlyContribution, statsController } from '../con
 import { accountRecoveryController, recoveryUpdatePassword, updatePasswordController, validateOtpController } from '../controllers/recovery.controller.js';
 import { handleBackupDownload } from '../controllers/backup.controller.js';
 import { handleRestore } from '../controllers/restore.controller.js';
+import { getEmployeeEpfReportController } from '../controllers/epfReport.controller.js';
 
 router.post('/login', loginController);
 router.post('/register', registerController);
@@ -53,6 +54,8 @@ router.put('/update-pwd', verifyAuth, updatePasswordController);
 
 router.get('/backup', handleBackupDownload);
 //router.post('/restore', handleRestore);
+
+router.get('/reports/epf/:employeeId/:year', verifyAuth, getEmployeeEpfReportController);
 
 router.get('/check-auth', verifyAuth, async (req, res) => {
     const admins = await getEmployeesByQuery({ email: req.user.email })

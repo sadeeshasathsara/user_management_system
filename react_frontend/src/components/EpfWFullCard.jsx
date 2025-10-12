@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Wallet,
     Edit3,
@@ -20,7 +20,8 @@ import {
     Target,
     CreditCard,
     BarChart3,
-    Activity
+    Activity,
+    Download
 } from 'lucide-react';
 import { createOrUpdateEmployeeEpf, deleteEmployeeEpf, getMaxEpf } from '../apis/epf.api';
 
@@ -561,9 +562,14 @@ const EpfWFullCard = ({ epfRecords: initialEpfRecords }) => {
                                                                 <h3 className="font-bold text-lg text-gray-900">{`${record.user?.name} (EPF: ${record.user?.epfNumber})` || 'N/A'}</h3>
                                                                 <p className="text-sm text-gray-600">{record.user?.email || 'N/A'}</p>
                                                             </div>
-                                                            <div className="text-right">
-                                                                <p className="text-xs text-gray-500 uppercase tracking-wide">Year</p>
-                                                                <p className="font-bold text-lg text-gray-900">{new Date(record.year).getFullYear()}</p>
+                                                            <div className='flex items-center justify-center gap-4'>
+                                                                <div className="text-right">
+                                                                    <p className="text-xs text-gray-500 uppercase tracking-wide">Year</p>
+                                                                    <p className="font-bold text-lg text-gray-900">{new Date(record.year).getFullYear()}</p>
+                                                                </div>
+                                                                <div title='Download Report'>
+                                                                    <Link to={`${import.meta.env.VITE_BACKEND_URL}/api/v1/reports/epf/${record.user._id}/${new Date(record.year).getFullYear()}`}><Download className='text-[#3477ff] hover:text-[#4c48f9]' /></Link>
+                                                                </div>
                                                             </div>
                                                         </div>
 

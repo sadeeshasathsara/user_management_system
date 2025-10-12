@@ -1,6 +1,7 @@
 import React from 'react';
 import Tab from '../../../layout/Tab';
 import TabHeader from '../../../components/TabHeader';
+import EPFReportWidget from '../../../components/EpfReportWidget';
 
 const Reports = ({ currentPath }) => (
     <Tab>
@@ -10,9 +11,9 @@ const Reports = ({ currentPath }) => (
             currentPath={currentPath}
         />
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <p className="text-gray-600">Reports and analytics will be implemented here...</p>
-        </div>
+
+        <EPFReportWidget />
+
     </Tab>
 );
 
