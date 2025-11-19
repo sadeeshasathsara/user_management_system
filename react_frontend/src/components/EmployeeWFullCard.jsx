@@ -168,6 +168,20 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                     break;
             }
 
+            // If basicSalary is present in the employment section, parse it to a number here.
+            if (section === 'employment' && updatePayload && Object.prototype.hasOwnProperty.call(updatePayload, 'basicSalary')) {
+                const raw = updatePayload.basicSalary;
+                // Allow commas and whitespace while editing; remove them before parsing
+                const cleaned = typeof raw === 'string' ? raw.replace(/,/g, '').trim() : raw;
+                const parsed = parseFloat(cleaned);
+                if (!isNaN(parsed)) {
+                    updatePayload.basicSalary = parsed;
+                } else {
+                    // If parsing fails, remove the field so we don't send NaN to the server
+                    delete updatePayload.basicSalary;
+                }
+            }
+
             const res = await updateEmployeeApi(employee._id, updatePayload); // use employee._id
 
             if (res?.success === true) {
@@ -745,12 +759,14 @@ const EmployeeWFullCard = ({ initialEmployee }) => {
                                         <option value="Intern">Intern</option>
                                     </select>
                                     <input
-                                        type="number"
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
                                         placeholder="Basic Salary"
                                         value={editData.employment?.basicSalary || ''}
                                         onChange={(e) => setEditData({
                                             ...editData,
-                                            employment: { ...editData.employment, basicSalary: Number(e.target.value) }
+                                            employment: { ...editData.employment, basicSalary: e.target.value }
                                         })}
                                         className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     />

@@ -392,6 +392,32 @@ const AddEpfForm = ({ onBack }) => {
         setTimeout(() => setNotification(null), 5000);
     };
 
+    // Popup modal for notifications (centered)
+    const NotificationPopup = ({ notification, onClose }) => {
+        if (!notification) return null;
+        const isSuccess = notification.type === 'success';
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+                <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+                <div className={`relative max-w-md w-full p-6 rounded-lg shadow-2xl border ${isSuccess ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`} role="alert">
+                    <div className="flex items-start space-x-3">
+                        {isSuccess ? (
+                            <CheckCircle className="w-6 h-6 flex-shrink-0" />
+                        ) : (
+                            <AlertCircle className="w-6 h-6 flex-shrink-0" />
+                        )}
+                        <div className="flex-1">
+                            <p className="font-medium">{notification.message}</p>
+                        </div>
+                        <button onClick={onClose} className="text-gray-500 hover:text-gray-700 p-1">
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -461,7 +487,6 @@ const AddEpfForm = ({ onBack }) => {
         setSearchTerm('');
         setEmployeeEpfData(null);
         setErrors({});
-        setNotification(null);
         setIsDropdownOpen(false);
     };
 
@@ -521,7 +546,11 @@ const AddEpfForm = ({ onBack }) => {
     return (
         <div className="">
             <div className="w-full mx-auto px-4">
-                {/* Notification */}
+                {/* Notification popup */}
+                {notification && (
+                    <NotificationPopup notification={notification} onClose={() => setNotification(null)} />
+                )}
+                {/* Inline Notification (kept for compatibility) */}
                 {notification && (
                     <div className={`mb-6 p-4 rounded-lg border flex items-center space-x-3 ${notification.type === 'success'
                         ? 'bg-green-50 border-green-200 text-green-800'
