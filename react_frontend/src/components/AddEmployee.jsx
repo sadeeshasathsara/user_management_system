@@ -555,17 +555,30 @@ const AddEmployeeForm = ({ onBack }) => {
                 })),
             };
 
-
             console.log(submitData);
 
             const response = await createEmployeeApi(submitData);
 
-            showToast('success', `Employee "${formData.name}" created successfully!`);
-            handleReset();
+            // Determine success from response. Accept common success signals (HTTP 200/201 or truthy response data)
+            const wasCreated = !!(
+                response && (
+                    response.status === 200 ||
+                    response.status === 201 ||
+                    (response.data && (response.data.success === true || response.data._id))
+                )
+            );
+
+            if (wasCreated) {
+                showToast('success', `Employee "${formData.name}" created successfully!`);
+                // Reset the form but do NOT clear toasts here so user sees the success message
+                handleReset();
+            } else {
+                const errMsg = (response && response.data && (response.data.message || response.data.error)) || 'Employee not created';
+                showToast('error', errMsg);
+            }
         } catch (err) {
-            setLoading(true);
             console.error('Error creating employee:', err);
-            const msg = err.message || 'Failed to create employee';
+            const msg = err?.response?.data?.message || err.message || 'Employee not created';
             showToast('error', msg);
         } finally {
             setLoading(false);
@@ -594,7 +607,6 @@ const AddEmployeeForm = ({ onBack }) => {
             contactNumber: ''
         });
         setErrors({});
-        setToast(null);
         setDepartmentSearch('');
         setShowDepartmentDropdown(false);
     };
