@@ -1,0 +1,78 @@
+{
+    "checkAuthResponse": {
+        "success": true,
+        "user": {
+            "_id": "env-admin",
+            "email": "admin@example.com",
+            "name": "Env Admin"
+        }
+    },
+    "departmentsResponse": {
+        "success": true,
+        "data": [
+            {
+                "_id": "dept-1",
+                "name": "HR"
+            },
+            {
+                "_id": "dept-2",
+                "name": "IT"
+            }
+        ]
+    },
+    "employeesResponse": {
+        "success": true,
+        "data": [
+            {
+                "_id": "emp-1",
+                "epfNumber": "1001",
+                "name": "Alice Johnson",
+                "email": "alice@example.com",
+                "contactNumber": "0711111111",
+                "department": {
+                    "_id": "dept-1",
+                    "name": "HR"
+                },
+                "joinedDate": "2022-01-01T00:00:00.000Z",
+                "dateOfBirth": "1995-01-01T00:00:00.000Z",
+                "basicSalary": 120000,
+                "employmentType": "Permanent",
+                "maritalStatus": "Unmarried",
+                "address": "Colombo",
+                "nicNumber": "199512345678",
+                "parents": [],
+                "children": [],
+                "spouseParents": [],
+                "createdAt": "2023-01-01T00:00:00.000Z",
+                "updatedAt": "2023-01-01T00:00:00.000Z"
+            },
+            {
+                "_id": "emp-2",
+                "epfNumber": "1002",
+                "name": "Bob Perera",
+                "email": "bob@example.com",
+                "contactNumber": "0722222222",
+                "department": {
+                    "_id": "dept-2",
+                    "name": "IT"
+                },
+                "joinedDate": "2021-05-10T00:00:00.000Z",
+                "dateOfBirth": "1992-02-02T00:00:00.000Z",
+                "basicSalary": 140000,
+                "employmentType": "Permanent",
+                "maritalStatus": "Married",
+                "address": "Kandy",
+                "nicNumber": "199212345678",
+                "parents": [],
+                "children": [],
+                "spouseParents": [],
+                "createdAt": "2023-01-01T00:00:00.000Z",
+                "updatedAt": "2023-01-01T00:00:00.000Z"
+            }
+        ]
+    },
+    "deleteEmployeeResponse": {
+        "success": true,
+        "message": "Employee deleted successfully"
+    }
+}
