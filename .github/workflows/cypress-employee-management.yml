@@ -18,6 +18,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Capture start time
+        id: start_time
+        run: echo "start_ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -29,6 +33,7 @@ jobs:
         run: npm ci
 
       - name: Run Cypress employee-management spec
+        id: cypress_run
         uses: cypress-io/github-action@v6
         with:
           working-directory: react_frontend
@@ -38,16 +43,71 @@ jobs:
           wait-on-timeout: 120
           command: npm run test:e2e:employee-management
 
-      - name: Upload Cypress screenshots (on failure)
-        if: failure()
+      - name: Upload Cypress screenshots
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cypress-screenshots
           path: react_frontend/cypress/screenshots
+          if-no-files-found: ignore
 
-      - name: Upload Cypress videos (on failure)
-        if: failure()
+      - name: Upload Cypress videos
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cypress-videos
           path: react_frontend/cypress/videos
+          if-no-files-found: ignore
+
+      - name: Build email details
+        if: always()
+        id: email_meta
+        shell: bash
+        run: |
+          end_ts=$(date +%s)
+          duration=$((end_ts - ${{ steps.start_time.outputs.start_ts }}))
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          {
+            echo "run_url=$run_url"
+            echo "duration_seconds=$duration"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Send pipeline completion email
+        if: always() && env.SMTP_SERVER != '' && env.SMTP_PORT != '' && env.SMTP_USERNAME != '' && env.SMTP_PASSWORD != '' && env.MAIL_FROM != '' && env.MAIL_TO != ''
+        uses: dawidd6/action-send-mail@v3
+        env:
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          secure: true
+          from: ${{ secrets.MAIL_FROM }}
+          to: ${{ secrets.MAIL_TO }}
+          subject: >-
+            [${{ github.repository }}] Cypress Employee Management - ${{ job.status }}
+          html_body: |
+            <h2>Cypress Pipeline Finished</h2>
+            <p><strong>Status:</strong> ${{ job.status }}</p>
+            <p><strong>Repository:</strong> ${{ github.repository }}</p>
+            <p><strong>Workflow:</strong> ${{ github.workflow }}</p>
+            <p><strong>Job:</strong> cypress-run</p>
+            <p><strong>Event:</strong> ${{ github.event_name }}</p>
+            <p><strong>Branch/Ref:</strong> ${{ github.ref_name }}</p>
+            <p><strong>Actor:</strong> ${{ github.actor }}</p>
+            <p><strong>Commit:</strong> ${{ github.sha }}</p>
+            <p><strong>Cypress Step Result:</strong> ${{ steps.cypress_run.conclusion }}</p>
+            <p><strong>Duration (seconds):</strong> ${{ steps.email_meta.outputs.duration_seconds }}</p>
+            <p><strong>Run URL:</strong> <a href="${{ steps.email_meta.outputs.run_url }}">Open workflow run</a></p>
+            <hr />
+            <p><strong>Notes:</strong></p>
+            <ul>
+              <li>On failure, screenshots/videos are uploaded as artifacts in the same run.</li>
+              <li>This email is sent at the end of every run (success/failure/cancelled).</li>
+            </ul>
