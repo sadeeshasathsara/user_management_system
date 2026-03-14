@@ -20,6 +20,11 @@ export const verifyAuth = async (req, res, next) => {
             email: decoded.email
         };
 
+        // Environment-based admin login can be used without a persisted admin record.
+        if (decoded.isEnvAdmin === true) {
+            return next();
+        }
+
         const [admin] = await getAdmins({ email: decoded.email });
 
         if (!admin) {

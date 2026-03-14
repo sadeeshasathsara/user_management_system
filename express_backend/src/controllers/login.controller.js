@@ -11,6 +11,45 @@ export const loginController = async (req, res) => {
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailOrEpf);
 
     try {
+        // Allow optional environment-based login for local bootstrap/admin access.
+        const envLoginIdentifier = process.env.LOGIN_EMAIL_OR_EPF;
+        const envLoginPassword = process.env.LOGIN_PASSWORD;
+
+        if (envLoginIdentifier && envLoginPassword && emailOrEpf === envLoginIdentifier && password === envLoginPassword) {
+            const expiresIn = rememberMe ? '7d' : '1d';
+            const maxAge = rememberMe ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+            const isEnvEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(envLoginIdentifier);
+
+            const token = jwt.sign(
+                {
+                    id: 'env-admin',
+                    email: isEnvEmail ? envLoginIdentifier : 'env-admin@local',
+                    isEnvAdmin: true
+                },
+                process.env.JWT_SECRET,
+                { expiresIn }
+            );
+
+            res.cookie('token', token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                maxAge,
+            });
+
+            return res.status(200).json({
+                success: true,
+                message: 'Login successful',
+                admin: {
+                    _id: 'env-admin',
+                    email: isEnvEmail ? envLoginIdentifier : null,
+                    epfNo: !isEnvEmail ? envLoginIdentifier : null,
+                    isActive: true,
+                    isEnvAdmin: true
+                }
+            });
+        }
+
         const admin = isEmail
             ? await validateUser(emailOrEpf, '', password)
             : await validateUser('', emailOrEpf, password);

@@ -1,0 +1,154 @@
+name: Cypress Employee Management
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  cypress-run:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: react_frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Capture start time
+        id: start_time
+        run: echo "start_ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: react_frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Cypress employee-management spec
+        id: cypress_run
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: react_frontend
+          install: false
+          start: npm run dev
+          wait-on: 'http://localhost:5173'
+          wait-on-timeout: 120
+          command: npm run test:e2e:employee-management
+
+      - name: Upload Cypress screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: react_frontend/cypress/screenshots
+          if-no-files-found: ignore
+
+      - name: Upload Cypress videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-videos
+          path: react_frontend/cypress/videos
+          if-no-files-found: ignore
+
+      - name: Build email details
+        if: always()
+        id: email_meta
+        shell: bash
+        run: |
+          end_ts=$(date +%s)
+          duration=$((end_ts - ${{ steps.start_time.outputs.start_ts }}))
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          {
+            echo "run_url=$run_url"
+            echo "duration_seconds=$duration"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Collect media attachments
+        if: always()
+        id: media
+        shell: bash
+        run: |
+          shopt -s globstar nullglob
+          files=()
+          for f in "$GITHUB_WORKSPACE"/react_frontend/cypress/screenshots/**/*.png; do
+            files+=("$f")
+          done
+          for f in "$GITHUB_WORKSPACE"/react_frontend/cypress/videos/**/*.mp4; do
+            files+=("$f")
+          done
+
+          if [ ${#files[@]} -gt 0 ]; then
+            attachments=$(printf '%s,' "${files[@]}")
+            attachments=${attachments%,}
+            echo "has_attachments=true" >> "$GITHUB_OUTPUT"
+            echo "attachments=$attachments" >> "$GITHUB_OUTPUT"
+            echo "attachments_count=${#files[@]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_attachments=false" >> "$GITHUB_OUTPUT"
+            echo "attachments=" >> "$GITHUB_OUTPUT"
+            echo "attachments_count=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Send pipeline completion email
+        if: always() && env.SMTP_SERVER != '' && env.SMTP_PORT != '' && env.SMTP_USERNAME != '' && env.SMTP_PASSWORD != '' && env.MAIL_FROM != '' && env.MAIL_TO != ''
+        uses: dawidd6/action-send-mail@v3
+        env:
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          secure: true
+          from: ${{ secrets.MAIL_FROM }}
+          to: ${{ secrets.MAIL_TO }}
+          subject: >-
+            [${{ github.repository }}] Cypress Employee Management - ${{ job.status }}
+          html_body: |
+            <div style="font-family:Segoe UI,Arial,sans-serif;background:#f5f7fb;padding:24px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:760px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e9f2;">
+                <tr>
+                  <td style="background:linear-gradient(135deg,#0f766e,#1d4ed8);padding:20px 24px;color:#ffffff;">
+                    <h2 style="margin:0;font-size:22px;">Cypress Pipeline Report</h2>
+                    <p style="margin:6px 0 0;font-size:14px;opacity:.95;">Employee Management E2E Workflow Summary</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <p style="margin:0 0 16px;font-size:15px;color:#1f2937;">
+                      <strong>Status:</strong>
+                      <span style="display:inline-block;padding:4px 10px;border-radius:999px;background:#eef2ff;color:#3730a3;font-weight:600;margin-left:8px;">${{ job.status }}</span>
+                    </p>
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="8" style="border-collapse:collapse;font-size:14px;color:#374151;">
+                      <tr><td style="border-bottom:1px solid #edf2f7;"><strong>Repository</strong></td><td style="border-bottom:1px solid #edf2f7;">${{ github.repository }}</td></tr>
+                      <tr><td style="border-bottom:1px solid #edf2f7;"><strong>Workflow</strong></td><td style="border-bottom:1px solid #edf2f7;">${{ github.workflow }}</td></tr>
+                      <tr><td style="border-bottom:1px solid #edf2f7;"><strong>Event</strong></td><td style="border-bottom:1px solid #edf2f7;">${{ github.event_name }}</td></tr>
+                      <tr><td style="border-bottom:1px solid #edf2f7;"><strong>Branch</strong></td><td style="border-bottom:1px solid #edf2f7;">${{ github.ref_name }}</td></tr>
+                      <tr><td style="border-bottom:1px solid #edf2f7;"><strong>Actor</strong></td><td style="border-bottom:1px solid #edf2f7;">${{ github.actor }}</td></tr>
+                      <tr><td style="border-bottom:1px solid #edf2f7;"><strong>Commit</strong></td><td style="border-bottom:1px solid #edf2f7;"><code style="background:#f3f4f6;padding:2px 6px;border-radius:6px;">${{ github.sha }}</code></td></tr>
+                      <tr><td style="border-bottom:1px solid #edf2f7;"><strong>Cypress Step</strong></td><td style="border-bottom:1px solid #edf2f7;">${{ steps.cypress_run.conclusion }}</td></tr>
+                      <tr><td><strong>Duration</strong></td><td>${{ steps.email_meta.outputs.duration_seconds }} seconds</td></tr>
+                    </table>
+                    <p style="margin:18px 0 0;">
+                      <a href="${{ steps.email_meta.outputs.run_url }}" style="display:inline-block;background:#1d4ed8;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">Open Workflow Run</a>
+                    </p>
+                    <p style="margin:16px 0 0;font-size:13px;color:#6b7280;">Attachments included: ${{ steps.media.outputs.attachments_count }} screenshot/video file(s), when generated.</p>
+                  </td>
+                </tr>
+              </table>
+            </div>
+          attachments: ${{ steps.media.outputs.attachments }}
